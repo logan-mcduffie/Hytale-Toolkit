@@ -128,14 +128,35 @@ export async function getStats(dbPath: string): Promise<{
   const table = await db.openTable(TABLE_NAME);
   const count = await table.countRows();
 
-  // Get unique counts - fetch all rows (no select to avoid LanceDB column name case issues)
-  const allRows = await table.query().toArray();
-  const uniqueClasses = new Set(allRows.map((r: any) => r.className)).size;
-  const uniquePackages = new Set(allRows.map((r: any) => r.packageName)).size;
+  // For unique counts, we need to query the data
+  // Use a streaming approach to avoid loading all 37K+ rows at once
+  const classNames = new Set<string>();
+  const packageNames = new Set<string>();
+
+  // Process in batches using limit/offset pattern
+  const batchSize = 5000;
+  let offset = 0;
+
+  while (true) {
+    const batch = await table.query()
+      .limit(batchSize)
+      .offset(offset)
+      .toArray();
+
+    if (batch.length === 0) break;
+
+    for (const row of batch) {
+      classNames.add((row as any).className);
+      packageNames.add((row as any).packageName);
+    }
+
+    offset += batch.length;
+    if (batch.length < batchSize) break;
+  }
 
   return {
     totalMethods: count,
-    uniqueClasses,
-    uniquePackages,
+    uniqueClasses: classNames.size,
+    uniquePackages: packageNames.size,
   };
 }
