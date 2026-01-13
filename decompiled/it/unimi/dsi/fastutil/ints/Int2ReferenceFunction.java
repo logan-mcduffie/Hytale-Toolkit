@@ -1,0 +1,189 @@
+package it.unimi.dsi.fastutil.ints;
+
+import it.unimi.dsi.fastutil.bytes.Byte2IntFunction;
+import it.unimi.dsi.fastutil.bytes.Byte2ReferenceFunction;
+import it.unimi.dsi.fastutil.chars.Char2IntFunction;
+import it.unimi.dsi.fastutil.chars.Char2ReferenceFunction;
+import it.unimi.dsi.fastutil.doubles.Double2IntFunction;
+import it.unimi.dsi.fastutil.doubles.Double2ReferenceFunction;
+import it.unimi.dsi.fastutil.floats.Float2IntFunction;
+import it.unimi.dsi.fastutil.floats.Float2ReferenceFunction;
+import it.unimi.dsi.fastutil.longs.Long2IntFunction;
+import it.unimi.dsi.fastutil.longs.Long2ReferenceFunction;
+import it.unimi.dsi.fastutil.objects.Object2IntFunction;
+import it.unimi.dsi.fastutil.objects.Object2ReferenceFunction;
+import it.unimi.dsi.fastutil.objects.Reference2ByteFunction;
+import it.unimi.dsi.fastutil.objects.Reference2CharFunction;
+import it.unimi.dsi.fastutil.objects.Reference2DoubleFunction;
+import it.unimi.dsi.fastutil.objects.Reference2FloatFunction;
+import it.unimi.dsi.fastutil.objects.Reference2IntFunction;
+import it.unimi.dsi.fastutil.objects.Reference2LongFunction;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectFunction;
+import it.unimi.dsi.fastutil.objects.Reference2ReferenceFunction;
+import it.unimi.dsi.fastutil.objects.Reference2ShortFunction;
+import it.unimi.dsi.fastutil.shorts.Short2IntFunction;
+import it.unimi.dsi.fastutil.shorts.Short2ReferenceFunction;
+import java.util.function.Function;
+import java.util.function.IntFunction;
+
+@FunctionalInterface
+public interface Int2ReferenceFunction<V> extends it.unimi.dsi.fastutil.Function<Integer, V>, IntFunction<V> {
+   @Override
+   default V apply(int operand) {
+      return this.get(operand);
+   }
+
+   default V put(int key, V value) {
+      throw new UnsupportedOperationException();
+   }
+
+   V get(int var1);
+
+   default V getOrDefault(int key, V defaultValue) {
+      V v;
+      return (v = this.get(key)) == this.defaultReturnValue() && !this.containsKey(key) ? defaultValue : v;
+   }
+
+   default V remove(int key) {
+      throw new UnsupportedOperationException();
+   }
+
+   @Deprecated
+   default V put(Integer key, V value) {
+      int k = key;
+      boolean containsKey = this.containsKey(k);
+      V v = this.put(k, value);
+      return containsKey ? v : null;
+   }
+
+   @Deprecated
+   @Override
+   default V get(Object key) {
+      if (key == null) {
+         return null;
+      } else {
+         int k = (Integer)key;
+         V v;
+         return (v = this.get(k)) == this.defaultReturnValue() && !this.containsKey(k) ? null : v;
+      }
+   }
+
+   @Deprecated
+   @Override
+   default V getOrDefault(Object key, V defaultValue) {
+      if (key == null) {
+         return defaultValue;
+      } else {
+         int k = (Integer)key;
+         V v = this.get(k);
+         return v == this.defaultReturnValue() && !this.containsKey(k) ? defaultValue : v;
+      }
+   }
+
+   @Deprecated
+   @Override
+   default V remove(Object key) {
+      if (key == null) {
+         return null;
+      } else {
+         int k = (Integer)key;
+         return this.containsKey(k) ? this.remove(k) : null;
+      }
+   }
+
+   default boolean containsKey(int key) {
+      return true;
+   }
+
+   @Deprecated
+   @Override
+   default boolean containsKey(Object key) {
+      return key == null ? false : this.containsKey(((Integer)key).intValue());
+   }
+
+   default void defaultReturnValue(V rv) {
+      throw new UnsupportedOperationException();
+   }
+
+   default V defaultReturnValue() {
+      return null;
+   }
+
+   @Deprecated
+   @Override
+   default <T> Function<T, V> compose(Function<? super T, ? extends Integer> before) {
+      return (Function<T, V>)it.unimi.dsi.fastutil.Function.super.compose(before);
+   }
+
+   default Int2ByteFunction andThenByte(Reference2ByteFunction<V> after) {
+      return k -> after.getByte(this.get(k));
+   }
+
+   default Byte2ReferenceFunction<V> composeByte(Byte2IntFunction before) {
+      return k -> this.get(before.get(k));
+   }
+
+   default Int2ShortFunction andThenShort(Reference2ShortFunction<V> after) {
+      return k -> after.getShort(this.get(k));
+   }
+
+   default Short2ReferenceFunction<V> composeShort(Short2IntFunction before) {
+      return k -> this.get(before.get(k));
+   }
+
+   default Int2IntFunction andThenInt(Reference2IntFunction<V> after) {
+      return k -> after.getInt(this.get(k));
+   }
+
+   default Int2ReferenceFunction<V> composeInt(Int2IntFunction before) {
+      return k -> this.get(before.get(k));
+   }
+
+   default Int2LongFunction andThenLong(Reference2LongFunction<V> after) {
+      return k -> after.getLong(this.get(k));
+   }
+
+   default Long2ReferenceFunction<V> composeLong(Long2IntFunction before) {
+      return k -> this.get(before.get(k));
+   }
+
+   default Int2CharFunction andThenChar(Reference2CharFunction<V> after) {
+      return k -> after.getChar(this.get(k));
+   }
+
+   default Char2ReferenceFunction<V> composeChar(Char2IntFunction before) {
+      return k -> this.get(before.get(k));
+   }
+
+   default Int2FloatFunction andThenFloat(Reference2FloatFunction<V> after) {
+      return k -> after.getFloat(this.get(k));
+   }
+
+   default Float2ReferenceFunction<V> composeFloat(Float2IntFunction before) {
+      return k -> this.get(before.get(k));
+   }
+
+   default Int2DoubleFunction andThenDouble(Reference2DoubleFunction<V> after) {
+      return k -> after.getDouble(this.get(k));
+   }
+
+   default Double2ReferenceFunction<V> composeDouble(Double2IntFunction before) {
+      return k -> this.get(before.get(k));
+   }
+
+   default <T> Int2ObjectFunction<T> andThenObject(Reference2ObjectFunction<? super V, ? extends T> after) {
+      return k -> (T)after.get(this.get(k));
+   }
+
+   default <T> Object2ReferenceFunction<T, V> composeObject(Object2IntFunction<? super T> before) {
+      return k -> this.get(before.getInt(k));
+   }
+
+   default <T> Int2ReferenceFunction<T> andThenReference(Reference2ReferenceFunction<? super V, ? extends T> after) {
+      return k -> (T)after.get(this.get(k));
+   }
+
+   default <T> Reference2ReferenceFunction<T, V> composeReference(Reference2IntFunction<? super T> before) {
+      return k -> this.get(before.getInt(k));
+   }
+}

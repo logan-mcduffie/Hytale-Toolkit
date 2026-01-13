@@ -1,0 +1,30 @@
+package com.hypixel.hytale.builtin.hytalegenerator.assets.density;
+
+import com.hypixel.hytale.builtin.hytalegenerator.density.Density;
+import com.hypixel.hytale.builtin.hytalegenerator.density.nodes.ConstantValueDensity;
+import com.hypixel.hytale.builtin.hytalegenerator.density.nodes.OffsetConstantDensity;
+import com.hypixel.hytale.codec.Codec;
+import com.hypixel.hytale.codec.KeyedCodec;
+import com.hypixel.hytale.codec.builder.BuilderCodec;
+import javax.annotation.Nonnull;
+
+public class OffsetConstantAsset extends DensityAsset {
+   public static final BuilderCodec<OffsetConstantAsset> CODEC = BuilderCodec.builder(
+         OffsetConstantAsset.class, OffsetConstantAsset::new, DensityAsset.ABSTRACT_CODEC
+      )
+      .append(new KeyedCodec<>("Value", Codec.DOUBLE, true), (t, k) -> t.value = k, t -> t.value)
+      .add()
+      .build();
+   private double value = 0.0;
+
+   @Nonnull
+   @Override
+   public Density build(@Nonnull DensityAsset.Argument argument) {
+      return (Density)(this.isSkipped() ? new ConstantValueDensity(0.0) : new OffsetConstantDensity(this.value, this.buildFirstInput(argument)));
+   }
+
+   @Override
+   public void cleanUp() {
+      this.cleanUpInputs();
+   }
+}

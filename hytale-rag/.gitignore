@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.env
+tmpclaude-*
+
+# Keep the LanceDB database - it's the pre-built index
+# data/lancedb/ is intentionally tracked

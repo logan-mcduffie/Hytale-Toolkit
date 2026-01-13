@@ -1,0 +1,539 @@
+[{
+  "Group": "Hytale",
+  "Name": "AssetEditor",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.asseteditor.AssetEditorPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:I18nModule": "*",
+    "Hytale:ItemModule": "*",
+    "Hytale:Model": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "BlockSpawner",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.blockspawner.BlockSpawnerPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:I18nModule": "*",
+    "Hytale:BlockStateModule": "*",
+    "Hytale:BlockModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "BlockTick",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.blocktick.BlockTickPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:LegacyModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "BlockPhysics",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.blockphysics.BlockPhysicsPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:BlockTick": "*",
+    "Hytale:BlockTypeModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "BuilderTools",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.buildertools.BuilderToolsPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Crafting",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.crafting.CraftingPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:BlockStateModule": "*",
+    "Hytale:EntityModule": "*",
+    "Hytale:InteractionModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "CommandMacro",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.commandmacro.MacroCommandPlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "Instances",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.instances.InstancesPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:I18nModule": "*",
+    "Hytale:BlockStateModule": "*",
+    "Hytale:BlockPhysics": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "LANDiscovery",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.landiscovery.LANDiscoveryPlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "NPC",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.server.npc.NPCPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:AssetModule": "*",
+    "Hytale:TagSet": "*",
+    "Hytale:EntityModule": "*",
+    "Hytale:EntityStatsModule": "*",
+    "Hytale:DamageModule": "*"
+  },
+  "OptionalDependencies": {
+    "Hytale:Objectives": "*",
+    "Hytale:Path": "*",
+    "Hytale:Teleport": "*"
+  },
+  "SubPlugins": [
+    {
+      "Name": "Spawning",
+      "Main": "com.hypixel.hytale.server.spawning.SpawningPlugin"
+    },
+    {
+      "Name": "Flock",
+      "Main": "com.hypixel.hytale.server.flock.FlockPlugin"
+    }
+  ]
+}
+,{
+  "Group": "Hytale",
+  "Name": "NPCObjectives",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.npcobjectives.NPCObjectivesPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:Objectives": "*",
+    "Hytale:NPC": "*",
+    "Hytale:Spawning": "*",
+    "Hytale:TagSet": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "ObjectiveReputation",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.objectivereputation.ObjectiveReputationPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:Objectives": "*",
+    "Hytale:Reputation": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Objectives",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.objectives.ObjectivePlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:I18nModule": "*",
+    "Hytale:BlockStateModule": "*",
+    "Hytale:InteractionModule": "*",
+    "Hytale:EntityModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "ObjectiveShop",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.objectiveshop.ObjectiveShopPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:Objectives": "*",
+    "Hytale:Shop": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Path",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.path.PathPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*",
+    "Hytale:BuilderTools": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Reputation",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.reputation.ReputationPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:I18nModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "NPCReputation",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.npcreputation.NPCReputationPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:Reputation": "*",
+    "Hytale:NPC": "*",
+    "Hytale:TagSet": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Shop",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.shop.ShopPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:InteractionModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "ShopReputation",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.shopreputation.ShopReputationPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:Shop": "*",
+    "Hytale:Reputation": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "NPCShop",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.npcshop.NPCShopPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:Shop": "*",
+    "Hytale:NPC": "*",
+    "Hytale:I18nModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "NPCEditor",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.npceditor.NPCEditorPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:NPC": "*",
+    "Hytale:AssetEditor": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Stash",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.stash.StashPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:ItemModule": "*",
+    "Hytale:BlockStateModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "TagSet",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.tagset.TagSetPlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "Teleport",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.teleport.TeleportPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:I18nModule": "*",
+    "Hytale:EntityModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Fluid",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.fluid.FluidPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:BlockTick": "*",
+    "Hytale:LegacyModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Weather",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.weather.WeatherPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "WorldGen",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.worldgen.WorldGenPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Farming",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.farming.FarmingPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:InteractionModule": "*",
+    "Hytale:BlockStateModule": "*",
+    "Hytale:BlockPhysics": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Camera",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.camera.CameraPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:AssetModule": "*",
+    "Hytale:DamageModule": "*",
+    "Hytale:InteractionModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "WorldLocationCondition",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.worldlocationcondition.WorldLocationConditionPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "NPCCombatActionEvaluator",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.npccombatactionevaluator.NPCCombatActionEvaluatorPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:NPC": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Model",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.model.ModelPlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "Mantling",
+  "Description": "Enable mantling",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.mantling.MantlingPlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "SafetyRoll",
+  "Description": "Enable Safety Roll",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.safetyroll.SafetyRollPlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "SprintForce",
+  "Description": "Enable sprint acceleration/deceleration",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.sprintforce.SprintForcePlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "CrouchSlide",
+  "Description": "Enable Crouch Sliding",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.crouchslide.CrouchSlidePlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "Parkour",
+  "Description": "Module to add a timer with a checkpoint system",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.parkour.ParkourPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Mounts",
+  "Description": "Module to add mounts",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.mounts.MountPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:NPC": "*",
+    "Hytale:DamageModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "HytaleGenerator",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.hytalegenerator.plugin.HytaleGenerator",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "Teleporter",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.teleporter.TeleporterPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:BlockStateModule": "*",
+    "Hytale:Teleport": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Memories",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.adventure.memories.MemoriesPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:NPC": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Deployables",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.deployables.DeployablesPlugin",
+  "ServerVersion": "*"
+}
+,{
+  "Group": "Hytale",
+  "Name": "Portals",
+  "Description": "Module to add portals",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.portals.PortalsPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:NPC": "*",
+    "Hytale:Ambience": "*",
+    "Hytale:Instances": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Beds",
+  "Description": "Module to handle beds and sleeping in them",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.beds.BedsPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:Mounts": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "Ambience",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.ambience.AmbiencePlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:EntityModule": "*"
+  }
+}
+,{
+  "Group": "Hytale",
+  "Name": "CreativeHub",
+  "Version": "1.0.0",
+  "Website": "https://hypixel.com/",
+  "Main": "com.hypixel.hytale.builtin.creativehub.CreativeHubPlugin",
+  "ServerVersion": "*",
+  "Dependencies": {
+    "Hytale:I18nModule": "*",
+    "Hytale:Instances": "*"
+  }
+}
+]

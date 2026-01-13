@@ -1,0 +1,24 @@
+package com.hypixel.hytale.server.core.asset.type.gameplay.respawn;
+
+import com.hypixel.hytale.codec.builder.BuilderCodec;
+import com.hypixel.hytale.component.CommandBuffer;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.math.vector.Transform;
+import com.hypixel.hytale.server.core.entity.entities.Player;
+import com.hypixel.hytale.server.core.modules.entity.teleport.Teleport;
+import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import javax.annotation.Nonnull;
+
+public class HomeOrSpawnPoint implements RespawnController {
+   @Nonnull
+   public static final HomeOrSpawnPoint INSTANCE = new HomeOrSpawnPoint();
+   @Nonnull
+   public static final BuilderCodec<HomeOrSpawnPoint> CODEC = BuilderCodec.builder(HomeOrSpawnPoint.class, () -> INSTANCE).build();
+
+   @Override
+   public void respawnPlayer(@Nonnull World world, @Nonnull Ref<EntityStore> playerReference, @Nonnull CommandBuffer<EntityStore> commandBuffer) {
+      Transform homePosition = Player.getRespawnPosition(playerReference, world.getName(), commandBuffer);
+      commandBuffer.addComponent(playerReference, Teleport.getComponentType(), new Teleport(null, homePosition));
+   }
+}

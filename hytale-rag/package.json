@@ -1,0 +1,24 @@
+{
+  "name": "hytale-rag",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "ingest": "tsx src/ingest.ts",
+    "search": "tsx src/search.ts",
+    "mcp": "tsx src/mcp-server.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@lancedb/lancedb": "^0.4.0",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "apache-arrow": "^15.0.0",
+    "java-parser": "^2.3.0",
+    "voyageai": "^0.0.3",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

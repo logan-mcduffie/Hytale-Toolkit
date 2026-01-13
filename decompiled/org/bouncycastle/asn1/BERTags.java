@@ -1,0 +1,48 @@
+package org.bouncycastle.asn1;
+
+public interface BERTags {
+   int BOOLEAN = 1;
+   int INTEGER = 2;
+   int BIT_STRING = 3;
+   int OCTET_STRING = 4;
+   int NULL = 5;
+   int OBJECT_IDENTIFIER = 6;
+   int OBJECT_DESCRIPTOR = 7;
+   int EXTERNAL = 8;
+   int REAL = 9;
+   int ENUMERATED = 10;
+   int EMBEDDED_PDV = 11;
+   int UTF8_STRING = 12;
+   int RELATIVE_OID = 13;
+   int TIME = 14;
+   int SEQUENCE = 16;
+   int SEQUENCE_OF = 16;
+   int SET = 17;
+   int SET_OF = 17;
+   int NUMERIC_STRING = 18;
+   int PRINTABLE_STRING = 19;
+   int T61_STRING = 20;
+   int VIDEOTEX_STRING = 21;
+   int IA5_STRING = 22;
+   int UTC_TIME = 23;
+   int GENERALIZED_TIME = 24;
+   int GRAPHIC_STRING = 25;
+   int VISIBLE_STRING = 26;
+   int GENERAL_STRING = 27;
+   int UNIVERSAL_STRING = 28;
+   int UNRESTRICTED_STRING = 29;
+   int BMP_STRING = 30;
+   int DATE = 31;
+   int TIME_OF_DAY = 32;
+   int DATE_TIME = 33;
+   int DURATION = 34;
+   int OBJECT_IDENTIFIER_IRI = 35;
+   int RELATIVE_OID_IRI = 36;
+   int CONSTRUCTED = 32;
+   int UNIVERSAL = 0;
+   int APPLICATION = 64;
+   int TAGGED = 128;
+   int CONTEXT_SPECIFIC = 128;
+   int PRIVATE = 192;
+   int FLAGS = 224;
+}

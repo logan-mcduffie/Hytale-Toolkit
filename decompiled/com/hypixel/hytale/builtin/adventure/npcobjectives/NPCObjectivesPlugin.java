@@ -1,0 +1,164 @@
+package com.hypixel.hytale.builtin.adventure.npcobjectives;
+
+import com.hypixel.hytale.assetstore.AssetRegistry;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.assets.BountyObjectiveTaskAsset;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.assets.KillObjectiveTaskAsset;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.assets.KillSpawnBeaconObjectiveTaskAsset;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.assets.KillSpawnMarkerObjectiveTaskAsset;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.npc.builders.BuilderActionCompleteTask;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.npc.builders.BuilderActionStartObjective;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.npc.builders.BuilderSensorHasTask;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.resources.KillTrackerResource;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.systems.KillTrackerSystem;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.systems.SpawnBeaconCheckRemovalSystem;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.task.BountyObjectiveTask;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.task.KillNPCObjectiveTask;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.task.KillSpawnBeaconObjectiveTask;
+import com.hypixel.hytale.builtin.adventure.npcobjectives.task.KillSpawnMarkerObjectiveTask;
+import com.hypixel.hytale.builtin.adventure.objectives.Objective;
+import com.hypixel.hytale.builtin.adventure.objectives.ObjectiveDataStore;
+import com.hypixel.hytale.builtin.adventure.objectives.ObjectivePlugin;
+import com.hypixel.hytale.builtin.adventure.objectives.config.ObjectiveAsset;
+import com.hypixel.hytale.builtin.adventure.objectives.config.task.UseEntityObjectiveTaskAsset;
+import com.hypixel.hytale.builtin.adventure.objectives.task.ObjectiveTask;
+import com.hypixel.hytale.builtin.adventure.objectives.task.UseEntityObjectiveTask;
+import com.hypixel.hytale.builtin.tagset.config.NPCGroup;
+import com.hypixel.hytale.component.Ref;
+import com.hypixel.hytale.component.ResourceType;
+import com.hypixel.hytale.component.Store;
+import com.hypixel.hytale.server.core.entity.UUIDComponent;
+import com.hypixel.hytale.server.core.plugin.JavaPlugin;
+import com.hypixel.hytale.server.core.plugin.JavaPluginInit;
+import com.hypixel.hytale.server.core.universe.PlayerRef;
+import com.hypixel.hytale.server.core.universe.world.World;
+import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
+import com.hypixel.hytale.server.npc.NPCPlugin;
+import com.hypixel.hytale.server.spawning.assets.spawnmarker.config.SpawnMarker;
+import com.hypixel.hytale.server.spawning.assets.spawns.config.BeaconNPCSpawn;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+public class NPCObjectivesPlugin extends JavaPlugin {
+   protected static NPCObjectivesPlugin instance;
+   private ResourceType<EntityStore, KillTrackerResource> killTrackerResourceType;
+
+   public static NPCObjectivesPlugin get() {
+      return instance;
+   }
+
+   public NPCObjectivesPlugin(@Nonnull JavaPluginInit init) {
+      super(init);
+   }
+
+   @Override
+   protected void setup() {
+      instance = this;
+      ObjectivePlugin.get()
+         .registerTask(
+            "KillSpawnBeacon",
+            KillSpawnBeaconObjectiveTaskAsset.class,
+            KillSpawnBeaconObjectiveTaskAsset.CODEC,
+            KillSpawnBeaconObjectiveTask.class,
+            KillSpawnBeaconObjectiveTask.CODEC,
+            KillSpawnBeaconObjectiveTask::new
+         );
+      ObjectivePlugin.get()
+         .registerTask(
+            "KillSpawnMarker",
+            KillSpawnMarkerObjectiveTaskAsset.class,
+            KillSpawnMarkerObjectiveTaskAsset.CODEC,
+            KillSpawnMarkerObjectiveTask.class,
+            KillSpawnMarkerObjectiveTask.CODEC,
+            KillSpawnMarkerObjectiveTask::new
+         );
+      ObjectivePlugin.get()
+         .registerTask(
+            "Bounty",
+            BountyObjectiveTaskAsset.class,
+            BountyObjectiveTaskAsset.CODEC,
+            BountyObjectiveTask.class,
+            BountyObjectiveTask.CODEC,
+            BountyObjectiveTask::new
+         );
+      ObjectivePlugin.get()
+         .registerTask(
+            "KillNPC",
+            KillObjectiveTaskAsset.class,
+            KillObjectiveTaskAsset.CODEC,
+            KillNPCObjectiveTask.class,
+            KillNPCObjectiveTask.CODEC,
+            KillNPCObjectiveTask::new
+         );
+      this.getEntityStoreRegistry().registerSystem(new SpawnBeaconCheckRemovalSystem());
+      this.killTrackerResourceType = this.getEntityStoreRegistry().registerResource(KillTrackerResource.class, KillTrackerResource::new);
+      this.getEntityStoreRegistry().registerSystem(new KillTrackerSystem());
+      NPCPlugin.get()
+         .registerCoreComponentType("CompleteTask", BuilderActionCompleteTask::new)
+         .registerCoreComponentType("StartObjective", BuilderActionStartObjective::new)
+         .registerCoreComponentType("HasTask", BuilderSensorHasTask::new);
+      AssetRegistry.getAssetStore(ObjectiveAsset.class).injectLoadsAfter(SpawnMarker.class);
+      AssetRegistry.getAssetStore(ObjectiveAsset.class).injectLoadsAfter(BeaconNPCSpawn.class);
+      AssetRegistry.getAssetStore(ObjectiveAsset.class).injectLoadsAfter(NPCGroup.class);
+   }
+
+   public static boolean hasTask(@Nonnull UUID playerUUID, @Nonnull UUID npcId, @Nonnull String taskId) {
+      Map<String, Set<UUID>> entityObjectives = ObjectivePlugin.get().getObjectiveDataStore().getEntityTasksForPlayer(playerUUID);
+      return entityObjectives == null ? false : entityObjectives.get(taskId) != null;
+   }
+
+   @Nullable
+   public static String updateTaskCompletion(
+      @Nonnull Store<EntityStore> store, @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull UUID npcId, @Nonnull String taskId
+   ) {
+      UUIDComponent uuidComponent = store.getComponent(ref, UUIDComponent.getComponentType());
+
+      assert uuidComponent != null;
+
+      ObjectiveDataStore objectiveDataStore = ObjectivePlugin.get().getObjectiveDataStore();
+      Map<String, Set<UUID>> entityObjectiveUUIDs = objectiveDataStore.getEntityTasksForPlayer(uuidComponent.getUuid());
+      if (entityObjectiveUUIDs == null) {
+         return null;
+      } else {
+         Set<UUID> objectiveUUIDsForTaskId = entityObjectiveUUIDs.get(taskId);
+         if (objectiveUUIDsForTaskId == null) {
+            return null;
+         } else {
+            for (UUID objectiveUUID : objectiveUUIDsForTaskId) {
+               Objective objective = objectiveDataStore.getObjective(objectiveUUID);
+               if (objective != null) {
+                  for (ObjectiveTask task : objective.getCurrentTasks()) {
+                     if (task instanceof UseEntityObjectiveTask useEntityTask) {
+                        UseEntityObjectiveTaskAsset taskAsset = useEntityTask.getAsset();
+                        if (taskAsset.getTaskId().equals(taskId)) {
+                           if (!useEntityTask.increaseTaskCompletion(store, ref, 1, objective, playerRef, npcId)) {
+                              return null;
+                           }
+
+                           return taskAsset.getAnimationIdToPlay();
+                        }
+                     }
+                  }
+               }
+            }
+
+            return null;
+         }
+      }
+   }
+
+   public static void startObjective(@Nonnull Ref<EntityStore> playerReference, @Nonnull String taskId, @Nonnull Store<EntityStore> store) {
+      UUIDComponent uuidComponent = store.getComponent(playerReference, UUIDComponent.getComponentType());
+
+      assert uuidComponent != null;
+
+      World world = store.getExternalData().getWorld();
+      ObjectivePlugin.get().startObjective(taskId, Set.of(uuidComponent.getUuid()), world.getWorldConfig().getUuid(), null, store);
+   }
+
+   public ResourceType<EntityStore, KillTrackerResource> getKillTrackerResourceType() {
+      return this.killTrackerResourceType;
+   }
+}

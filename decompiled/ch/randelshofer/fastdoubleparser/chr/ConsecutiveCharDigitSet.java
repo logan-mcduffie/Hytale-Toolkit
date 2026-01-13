@@ -1,0 +1,14 @@
+package ch.randelshofer.fastdoubleparser.chr;
+
+final class ConsecutiveCharDigitSet implements CharDigitSet {
+   private final char zeroDigit;
+
+   public ConsecutiveCharDigitSet(char zeroDigit) {
+      this.zeroDigit = zeroDigit;
+   }
+
+   @Override
+   public int toDigit(char ch) {
+      return (char)(ch - this.zeroDigit);
+   }
+}

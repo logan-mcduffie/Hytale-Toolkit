@@ -1,0 +1,14 @@
+Manifest-Version: 1.0
+Created-By: Maven JAR Plugin 3.5.0
+Java-Version: 21
+Build-Jdk-Spec: 25
+Main-Class: com.hypixel.hytale.Main
+Built-By: 
+Implementation-Branch: release
+Implementation-Build: NoJar
+Implementation-Patchline: release
+Implementation-Revision-Id: dcad8778f19e4e56af55d74b58575c91c50a018d
+Implementation-Title: Server
+Implementation-Vendor-Id: com.hypixel.hytale
+Implementation-Version: 2026.01.13-dcad8778f
+

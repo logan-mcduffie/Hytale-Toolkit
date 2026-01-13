@@ -1,0 +1,35 @@
+package io.netty.handler.codec.http3;
+
+public enum Http3ErrorCode {
+   H3_DATAGRAM_ERROR(51),
+   H3_NO_ERROR(256),
+   H3_GENERAL_PROTOCOL_ERROR(257),
+   H3_INTERNAL_ERROR(258),
+   H3_STREAM_CREATION_ERROR(259),
+   H3_CLOSED_CRITICAL_STREAM(260),
+   H3_FRAME_UNEXPECTED(261),
+   H3_FRAME_ERROR(262),
+   H3_EXCESSIVE_LOAD(263),
+   H3_ID_ERROR(264),
+   H3_SETTINGS_ERROR(265),
+   H3_MISSING_SETTINGS(266),
+   H3_REQUEST_REJECTED(267),
+   H3_REQUEST_CANCELLED(268),
+   H3_REQUEST_INCOMPLETE(269),
+   H3_MESSAGE_ERROR(270),
+   H3_CONNECT_ERROR(271),
+   H3_VERSION_FALLBACK(272),
+   QPACK_DECOMPRESSION_FAILED(512),
+   QPACK_ENCODER_STREAM_ERROR(513),
+   QPACK_DECODER_STREAM_ERROR(514);
+
+   final int code;
+
+   private Http3ErrorCode(int code) {
+      this.code = code;
+   }
+
+   public int code() {
+      return this.code;
+   }
+}

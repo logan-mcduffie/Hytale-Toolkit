@@ -1,0 +1,25 @@
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+tmpclaude-*
+.claude/
+
+# Node
+node_modules/
+
+# Build outputs
+target/
+dist/
+
+# Logs
+*.log
+
+# Environment
+.env
