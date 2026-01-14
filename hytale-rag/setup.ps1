@@ -108,8 +108,13 @@ try {
     Write-Host "     'Find methods related to inventory management'" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Available tools:" -ForegroundColor White
+    Write-Host "  Code Search:" -ForegroundColor Yellow
     Write-Host "  - search_hytale_code: Semantic search over 37,000+ methods" -ForegroundColor Gray
-    Write-Host "  - hytale_code_stats: Show database statistics" -ForegroundColor Gray
+    Write-Host "  - hytale_code_stats: Show code database statistics" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Game Data Search:" -ForegroundColor Yellow
+    Write-Host "  - search_hytale_gamedata: Search 8,400+ items, recipes, NPCs, drops, etc." -ForegroundColor Gray
+    Write-Host "  - hytale_gamedata_stats: Show game data statistics" -ForegroundColor Gray
 
 } catch {
     Write-Host ""

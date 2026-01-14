@@ -2,8 +2,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { search, getStats } from "./db.js";
-import { embedQuery } from "./embedder.js";
+import { search, getStats, searchGameData, getGameDataStats } from "./db.js";
+import { embedQuery, embedGameDataQuery } from "./embedder.js";
+import type { GameDataType } from "./types.js";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
@@ -108,6 +109,130 @@ The database is ready for semantic code search.`;
     } catch (error: any) {
       return {
         content: [{ type: "text" as const, text: `Failed to get stats: ${error.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// =====================================================
+// Game Data Tools
+// =====================================================
+
+// Valid game data types for filtering
+const GAME_DATA_TYPES = [
+  "all", "item", "recipe", "block", "interaction", "drop",
+  "npc", "npc_group", "npc_ai", "entity", "projectile",
+  "farming", "shop", "environment", "weather", "biome",
+  "worldgen", "camera", "objective", "gameplay", "localization"
+] as const;
+
+// Tool: Search game data
+server.tool(
+  "search_hytale_gamedata",
+  "Search vanilla Hytale game data including items, recipes, NPCs, drops, blocks, and more. " +
+    "Use this for modding questions like 'how to craft X', 'what drops Y', 'NPC behavior for Z', " +
+    "'what items use tag T', or 'how does the farming system work'.",
+  {
+    query: z.string().describe("Natural language question about Hytale game data"),
+    type: z.enum(GAME_DATA_TYPES)
+      .optional()
+      .default("all")
+      .describe("Filter by data type (default: all)"),
+    limit: z.number().optional().default(5).describe("Number of results (default 5, max 20)"),
+  },
+  async ({ query, type = "all", limit = 5 }) => {
+    try {
+      // Clamp limit
+      const resultLimit = Math.min(Math.max(1, limit), 20);
+
+      // Get embedding for the query using voyage-3
+      const queryVector = await embedGameDataQuery(query, VOYAGE_API_KEY);
+
+      // Type filter (null means no filter)
+      const typeFilter = type === "all" ? undefined : type as GameDataType;
+
+      // Search
+      const results = await searchGameData(DB_PATH, queryVector, resultLimit, typeFilter);
+
+      if (results.length === 0) {
+        return {
+          content: [{ type: "text" as const, text: "No game data found for your query." }],
+        };
+      }
+
+      // Format results - show JSON content
+      const formatted = results.map((r, i) => {
+        const parts = [
+          `## Result ${i + 1}: ${r.name}`,
+          `**Type:** ${r.type}`,
+          `**Path:** ${r.filePath}`,
+        ];
+
+        if (r.category) parts.push(`**Category:** ${r.category}`);
+        if (r.parentId) parts.push(`**Parent:** ${r.parentId}`);
+        if (r.tags && r.tags.length > 0) parts.push(`**Tags:** ${r.tags.join(", ")}`);
+        parts.push(`**Relevance:** ${(r.score * 100).toFixed(1)}%`);
+
+        // Pretty print the JSON
+        let jsonContent = r.rawJson;
+        try {
+          jsonContent = JSON.stringify(JSON.parse(r.rawJson), null, 2);
+        } catch {
+          // Keep original if parse fails
+        }
+
+        parts.push("");
+        parts.push("```json");
+        parts.push(jsonContent);
+        parts.push("```");
+
+        return parts.join("\n");
+      }).join("\n\n---\n\n");
+
+      return {
+        content: [{ type: "text" as const, text: formatted }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text" as const, text: `Game data search failed: ${error.message}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Tool: Get game data statistics
+server.tool(
+  "hytale_gamedata_stats",
+  "Get statistics about the indexed Hytale game data.",
+  {},
+  async () => {
+    try {
+      const stats = await getGameDataStats(DB_PATH);
+
+      // Format by-type stats, sorted by count
+      const byTypeLines = Object.entries(stats.byType)
+        .filter(([_, count]) => count > 0)
+        .sort((a, b) => b[1] - a[1])
+        .map(([type, count]) => `- **${type}:** ${count.toLocaleString()}`)
+        .join("\n");
+
+      const text = `# Hytale Game Data Statistics
+
+**Total Items:** ${stats.totalItems.toLocaleString()}
+
+## By Type:
+${byTypeLines}
+
+The game data database is ready for semantic search.`;
+
+      return {
+        content: [{ type: "text" as const, text }],
+      };
+    } catch (error: any) {
+      return {
+        content: [{ type: "text" as const, text: `Failed to get game data stats: ${error.message}` }],
         isError: true,
       };
     }

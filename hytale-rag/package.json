@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "ingest": "tsx src/ingest.ts",
+    "ingest-gamedata": "tsx src/ingest-gamedata.ts",
     "search": "tsx src/search.ts",
     "mcp": "tsx src/mcp-server.ts"
   },
@@ -11,13 +12,17 @@
     "@anthropic-ai/sdk": "^0.24.0",
     "@lancedb/lancedb": "^0.23.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "adm-zip": "^0.5.16",
     "apache-arrow": "^15.0.0",
     "java-parser": "^2.3.0",
     "voyageai": "^0.0.3",
+    "yauzl": "^3.2.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
     "@types/node": "^20.0.0",
+    "@types/yauzl": "^2.10.3",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }

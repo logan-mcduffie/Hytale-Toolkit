@@ -1,7 +1,9 @@
 import type { MethodChunk } from "./parser.js";
+import type { GameDataChunk, EmbeddedGameDataChunk } from "./types.js";
 
 const VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
-const MODEL = "voyage-code-2";
+const CODE_MODEL = "voyage-code-2";
+const GAMEDATA_MODEL = "voyage-3";
 const BATCH_SIZE = 128; // Voyage supports up to 128 texts per request
 
 export interface EmbeddedChunk extends MethodChunk {
@@ -71,7 +73,7 @@ export async function embedChunks(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: CODE_MODEL,
         input: texts,
         input_type: "document",
       }),
@@ -114,7 +116,107 @@ export async function embedQuery(query: string, apiKey: string): Promise<number[
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model: CODE_MODEL,
+      input: [query],
+      input_type: "query",
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Voyage API error: ${response.status} - ${errorText}`);
+  }
+
+  const data = (await response.json()) as {
+    data: Array<{ embedding: number[] }>;
+  };
+
+  return data.data[0].embedding;
+}
+
+// =====================================================
+// Game Data Embedding Functions (using voyage-3)
+// =====================================================
+
+/**
+ * Embed game data chunks using voyage-3 model.
+ * voyage-3 is better suited for natural language descriptions than voyage-code-2.
+ */
+export async function embedGameDataChunks(
+  chunks: GameDataChunk[],
+  apiKey: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<EmbeddedGameDataChunk[]> {
+  const results: EmbeddedGameDataChunk[] = [];
+
+  // Prepare texts (textForEmbedding is already built by the parser)
+  const textsWithChunks = chunks.map((chunk) => ({
+    chunk,
+    text: truncateToTokenLimit(chunk.textForEmbedding, 16000), // voyage-3 has 32K limit, use half
+  }));
+
+  // Process in batches
+  for (let i = 0; i < textsWithChunks.length; i += BATCH_SIZE) {
+    const batch = textsWithChunks.slice(i, i + BATCH_SIZE);
+    const texts = batch.map((b) => b.text);
+
+    if (onProgress) {
+      onProgress(Math.min(i + BATCH_SIZE, textsWithChunks.length), textsWithChunks.length);
+    }
+
+    const response = await fetch(VOYAGE_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: GAMEDATA_MODEL,
+        input: texts,
+        input_type: "document",
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Voyage API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = (await response.json()) as {
+      data: Array<{ embedding: number[]; index: number }>;
+      usage: { total_tokens: number };
+    };
+
+    // Match embeddings back to chunks
+    for (const item of data.data) {
+      const batchItem = batch[item.index];
+      results.push({
+        ...batchItem.chunk,
+        vector: item.embedding,
+      });
+    }
+
+    // Rate limiting - be nice to the API
+    if (i + BATCH_SIZE < textsWithChunks.length) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Embed a query for game data search using voyage-3.
+ */
+export async function embedGameDataQuery(query: string, apiKey: string): Promise<number[]> {
+  const response = await fetch(VOYAGE_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GAMEDATA_MODEL,
       input: [query],
       input_type: "query",
     }),
