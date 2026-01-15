@@ -1,0 +1,53 @@
+# Hytale RAG Configuration
+#
+# This file configures the semantic search system for Hytale codebase and game data.
+# Environment variables override these settings.
+
+server:
+  # Server mode: mcp | rest | openai | all
+  # - mcp: Claude integration via Model Context Protocol (default)
+  # - rest: REST API for any HTTP client
+  # - openai: OpenAI-compatible function calling API
+  # - all: Start both REST and OpenAI servers (MCP via separate command)
+  mode: mcp
+
+  # HTTP server settings (for rest/openai modes)
+  port: 3000
+  host: localhost
+
+embedding:
+  # Embedding provider: voyage | openai | cohere | ollama
+  # Note: Changing provider requires re-indexing the data
+  provider: voyage
+
+  # Model selection (optional - uses provider defaults if not specified)
+  models:
+    code: voyage-code-2      # For Java code embeddings
+    text: voyage-3           # For game data embeddings
+
+  # Batch processing settings
+  batchSize: 128             # Max texts per API call
+  rateLimitMs: 100           # Delay between batches
+
+vectorStore:
+  # Vector store provider: lancedb | pinecone | chroma | weaviate
+  provider: lancedb
+
+  # LanceDB settings
+  path: ./data/lancedb
+
+tables:
+  # Table names for stored data
+  code: hytale_methods
+  gamedata: hytale_gamedata
+
+api:
+  # Rate limiting (for REST/OpenAI servers)
+  rateLimit:
+    windowMs: 60000          # 1 minute window
+    max: 100                 # Max requests per window
+
+  # Authentication (disabled by default)
+  auth:
+    enabled: false
+    # apiKeys: []            # Set via HYTALE_RAG_API_KEYS env var

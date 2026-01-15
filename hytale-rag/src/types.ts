@@ -23,7 +23,11 @@ export type GameDataType =
   | "camera"         // Server/Camera/**
   | "objective"      // Server/Objective/**
   | "gameplay"       // Server/GameplayConfigs/**
-  | "localization";  // Common/Languages/**
+  | "localization"   // Common/Languages/**
+  | "zone"           // Server/World/**/Zones/**/*.json (tiles, customs, zones)
+  | "terrain_layer"  // Server/World/**/Zones/**/Layers/**
+  | "cave"           // Server/World/**/Zones/**/Cave/**
+  | "prefab";        // Server/Prefabs/**
 
 // A chunk of game data ready for embedding
 export interface GameDataChunk {

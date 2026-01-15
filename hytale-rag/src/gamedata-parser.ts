@@ -8,7 +8,9 @@ import yauzl from "yauzl";
 import { GameDataChunk, GameDataType } from "./types.js";
 
 // Path patterns for classifying game data types
+// Order matters - more specific patterns should come first
 const PATH_TYPE_MAP: Array<[RegExp, GameDataType]> = [
+  // Items and blocks
   [/^Server\/Item\/Items\//, "item"],
   [/^Server\/Item\/Recipes\//, "recipe"],
   [/^Server\/Item\/Block\//, "block"],
@@ -18,6 +20,8 @@ const PATH_TYPE_MAP: Array<[RegExp, GameDataType]> = [
   [/^Server\/Item\/Category\//, "item"],
   [/^Server\/Item\/ResourceTypes\//, "item"],
   [/^Server\/Item\/Qualities\//, "item"],
+
+  // NPCs and entities
   [/^Server\/Drops\//, "drop"],
   [/^Server\/NPC\/Roles\//, "npc"],
   [/^Server\/NPC\/Groups\//, "npc_group"],
@@ -26,15 +30,34 @@ const PATH_TYPE_MAP: Array<[RegExp, GameDataType]> = [
   [/^Server\/NPC\/Attitude\//, "npc"],
   [/^Server\/Entity\//, "entity"],
   [/^Server\/Projectiles\//, "projectile"],
+
+  // Gameplay systems
   [/^Server\/Farming\//, "farming"],
   [/^Server\/BarterShops\//, "shop"],
   [/^Server\/Environments\//, "environment"],
   [/^Server\/Weathers\//, "weather"],
-  [/^Server\/HytaleGenerator\/Biomes\//, "biome"],
-  [/^Server\/HytaleGenerator\/Assignments\//, "worldgen"],
   [/^Server\/Camera\//, "camera"],
   [/^Server\/Objective\//, "objective"],
   [/^Server\/GameplayConfigs\//, "gameplay"],
+
+  // World generation - HytaleGenerator
+  [/^Server\/HytaleGenerator\/Biomes\//, "biome"],
+  [/^Server\/HytaleGenerator\/Assignments\//, "worldgen"],
+  [/^Server\/HytaleGenerator\//, "worldgen"], // Catch-all for other HytaleGenerator files
+
+  // World generation - World folder (terrain layers, zones, caves)
+  [/^Server\/World\/[^/]+\/Zones\/[^/]+\/Layers\//, "terrain_layer"],
+  [/^Server\/World\/[^/]+\/Zones\/[^/]+\/Cave\//, "cave"],
+  [/^Server\/World\/[^/]+\/Zones\/Layers\//, "terrain_layer"],
+  [/^Server\/World\/[^/]+\/Zones\/Masks\//, "zone"],
+  [/^Server\/World\/[^/]+\/Zones\/Noise\//, "worldgen"],
+  [/^Server\/World\/[^/]+\/Zones\/[^/]+\/(Tile\.|Custom\.|Zone\.)/, "zone"],
+  [/^Server\/World\/[^/]+\/Zones\//, "zone"], // Catch remaining zone files
+
+  // Prefabs
+  [/^Server\/Prefabs\//, "prefab"],
+
+  // Localization
   [/^Common\/Languages\//, "localization"],
 ];
 
@@ -144,6 +167,14 @@ function buildTextForEmbedding(
       return buildInteractionText(chunk, json);
     case "localization":
       return buildLocalizationText(chunk, json);
+    case "zone":
+      return buildZoneText(chunk, json);
+    case "terrain_layer":
+      return buildTerrainLayerText(chunk, json);
+    case "cave":
+      return buildCaveText(chunk, json);
+    case "prefab":
+      return buildPrefabText(chunk, json);
     default:
       return buildGenericText(chunk, json);
   }
@@ -545,6 +576,214 @@ function buildLocalizationText(chunk: GameDataChunk, json: any): string {
   }
 
   return lines.join("\n");
+}
+
+function buildZoneText(chunk: GameDataChunk, json: any): string {
+  const lines: string[] = [];
+
+  // Parse zone type from filename (Tile.*, Custom.*, Zone.*)
+  const zoneType = chunk.name.startsWith("Tile.") ? "Tile" :
+                   chunk.name.startsWith("Custom.") ? "Custom Zone" :
+                   chunk.name.startsWith("Zone") ? "Zone Config" : "Zone";
+
+  lines.push(`${zoneType}: ${chunk.name}`);
+  lines.push(`Path: ${chunk.filePath}`);
+
+  if (json.Weight) lines.push(`Spawn Weight: ${json.Weight}`);
+  if (json.MapColor) lines.push(`Map Color: ${json.MapColor}`);
+
+  // Extract all block types mentioned anywhere in the JSON
+  const blocks = extractBlocksDeep(json);
+  if (blocks.length > 0) {
+    lines.push(`\nBlocks used in this zone:`);
+    // Group blocks by prefix for readability
+    const uniqueBlocks = [...new Set(blocks)].sort();
+    for (const block of uniqueBlocks.slice(0, 50)) {
+      lines.push(`  - ${block}`);
+    }
+    if (uniqueBlocks.length > 50) {
+      lines.push(`  ... and ${uniqueBlocks.length - 50} more blocks`);
+    }
+  }
+
+  // Covers (surface decorations)
+  if (json.Covers && Array.isArray(json.Covers)) {
+    lines.push(`\nSurface Covers:`);
+    for (const cover of json.Covers.slice(0, 10)) {
+      if (cover.Type) {
+        const types = Array.isArray(cover.Type) ? cover.Type : [cover.Type];
+        lines.push(`  - ${types.join(", ")}`);
+      }
+    }
+  }
+
+  // Features
+  if (json.Features && Array.isArray(json.Features)) {
+    lines.push(`\nFeatures:`);
+    for (const feature of json.Features.slice(0, 10)) {
+      if (typeof feature === "string") {
+        lines.push(`  - ${feature}`);
+      } else if (feature.Type) {
+        lines.push(`  - ${feature.Type}`);
+      }
+    }
+  }
+
+  return lines.join("\n");
+}
+
+function buildTerrainLayerText(chunk: GameDataChunk, json: any): string {
+  const lines: string[] = [];
+
+  lines.push(`Terrain Layer: ${chunk.name}`);
+  lines.push(`Path: ${chunk.filePath}`);
+
+  // Depth range
+  if (json.Min !== undefined) lines.push(`Min Depth: ${json.Min}`);
+  if (json.Max !== undefined) {
+    const max = Array.isArray(json.Max) ? json.Max.join("-") : json.Max;
+    lines.push(`Max Depth: ${max}`);
+  }
+
+  // Blocks in this layer
+  if (json.Blocks) {
+    lines.push(`\nBlocks in this terrain layer:`);
+    const blocks = extractBlocksFromLayerDef(json.Blocks);
+    for (const block of blocks.slice(0, 30)) {
+      lines.push(`  - ${block}`);
+    }
+    if (blocks.length > 30) {
+      lines.push(`  ... and ${blocks.length - 30} more`);
+    }
+  }
+
+  // Single block type
+  if (typeof json.Blocks === "string") {
+    lines.push(`Block: ${json.Blocks}`);
+  }
+
+  return lines.join("\n");
+}
+
+function buildCaveText(chunk: GameDataChunk, json: any): string {
+  const lines: string[] = [];
+
+  lines.push(`Cave Configuration: ${chunk.name}`);
+  lines.push(`Path: ${chunk.filePath}`);
+
+  // Extract blocks used in cave generation
+  const blocks = extractBlocksDeep(json);
+  if (blocks.length > 0) {
+    lines.push(`\nBlocks used in caves:`);
+    const uniqueBlocks = [...new Set(blocks)].sort();
+    for (const block of uniqueBlocks.slice(0, 30)) {
+      lines.push(`  - ${block}`);
+    }
+    if (uniqueBlocks.length > 30) {
+      lines.push(`  ... and ${uniqueBlocks.length - 30} more`);
+    }
+  }
+
+  // Cave carvers
+  if (json.Carvers && Array.isArray(json.Carvers)) {
+    lines.push(`\nCave Carvers: ${json.Carvers.length}`);
+  }
+
+  // Prefabs
+  if (json.Prefabs || json.PrefabPatterns) {
+    lines.push(`\nUses prefab patterns for cave structures`);
+  }
+
+  return lines.join("\n");
+}
+
+function buildPrefabText(chunk: GameDataChunk, json: any): string {
+  const lines: string[] = [];
+
+  lines.push(`Prefab: ${chunk.name}`);
+  lines.push(`Path: ${chunk.filePath}`);
+
+  if (json.Parent) lines.push(`Parent: ${json.Parent}`);
+  if (json.Type) lines.push(`Type: ${json.Type}`);
+
+  // Size
+  if (json.Size) {
+    const size = Array.isArray(json.Size) ? json.Size.join("x") : json.Size;
+    lines.push(`Size: ${size}`);
+  }
+
+  // Blocks
+  const blocks = extractBlocksDeep(json);
+  if (blocks.length > 0) {
+    lines.push(`\nBlocks used:`);
+    const uniqueBlocks = [...new Set(blocks)].sort();
+    for (const block of uniqueBlocks.slice(0, 20)) {
+      lines.push(`  - ${block}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Extract all block type names from a JSON structure (deep search).
+ */
+function extractBlocksDeep(obj: any): string[] {
+  const blocks: string[] = [];
+  const blockPattern = /^(Soil_|Rock_|Plant_|Wood_|Ore_|Block_|Stone_|Sand_|Water_|Ice_|Snow_|Coral_|Metal_|Crystal_|Gem_)[A-Za-z0-9_]+/;
+
+  function traverse(val: any) {
+    if (val === null || val === undefined) return;
+
+    if (typeof val === "string") {
+      // Check if it looks like a block type
+      // Also handle "BlockType:count" format like "Soil_Clay:2"
+      const cleanVal = val.split(":")[0];
+      if (blockPattern.test(cleanVal)) {
+        blocks.push(cleanVal);
+      }
+      // Also check for block references with ! prefix (exclusions)
+      if (val.startsWith("!") && blockPattern.test(val.slice(1).split(":")[0])) {
+        blocks.push(val.slice(1).split(":")[0]);
+      }
+    } else if (Array.isArray(val)) {
+      val.forEach(traverse);
+    } else if (typeof val === "object") {
+      // Check common block-containing keys
+      for (const [key, v] of Object.entries(val)) {
+        if (key === "Type" || key === "Blocks" || key === "Block" || key === "BlockType" ||
+            key === "Parent" || key === "Default" || key === "Materials") {
+          traverse(v);
+        } else {
+          traverse(v);
+        }
+      }
+    }
+  }
+
+  traverse(obj);
+  return blocks;
+}
+
+/**
+ * Extract block names from terrain layer block definition.
+ */
+function extractBlocksFromLayerDef(blocks: any): string[] {
+  const result: string[] = [];
+
+  if (typeof blocks === "string") {
+    result.push(blocks.split(":")[0]);
+  } else if (Array.isArray(blocks)) {
+    for (const block of blocks) {
+      if (typeof block === "string") {
+        result.push(block.split(":")[0]);
+      } else if (block && typeof block === "object" && block.Type) {
+        result.push(block.Type);
+      }
+    }
+  }
+
+  return result;
 }
 
 function buildGenericText(chunk: GameDataChunk, json: any): string {

@@ -1,26 +1,31 @@
 {
   "name": "hytale-rag",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
+  "description": "LLM-agnostic semantic search for Hytale codebase and game data",
   "scripts": {
+    "start": "tsx src/index.ts",
+    "start:mcp": "HYTALE_RAG_MODE=mcp tsx src/index.ts",
+    "start:rest": "HYTALE_RAG_MODE=rest tsx src/index.ts",
+    "start:openai": "HYTALE_RAG_MODE=openai tsx src/index.ts",
+    "start:all": "HYTALE_RAG_MODE=all tsx src/index.ts",
     "ingest": "tsx src/ingest.ts",
     "ingest-gamedata": "tsx src/ingest-gamedata.ts",
-    "search": "tsx src/search.ts",
-    "mcp": "tsx src/mcp-server.ts"
+    "search": "tsx src/search.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.24.0",
     "@lancedb/lancedb": "^0.23.0",
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "adm-zip": "^0.5.16",
     "apache-arrow": "^15.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
     "java-parser": "^2.3.0",
-    "voyageai": "^0.0.3",
     "yauzl": "^3.2.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/adm-zip": "^0.5.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
     "@types/node": "^20.0.0",
     "@types/yauzl": "^2.10.3",
     "tsx": "^4.0.0",
