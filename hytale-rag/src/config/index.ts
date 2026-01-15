@@ -7,7 +7,14 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { configSchema, type AppConfig } from "./schema.js";
+
+// Get the directory where this module is located (for resolving relative paths)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+// Default data path is relative to the hytale-rag package root
+const DEFAULT_DATA_PATH = path.resolve(__dirname, "..", "..", "data", "lancedb");
 
 /**
  * Deep merge two objects, with source values taking precedence.
@@ -216,7 +223,7 @@ export function loadConfig(): AppConfig {
 
   // Set default DB path if not specified
   if (!validated.vectorStore.path && validated.vectorStore.provider === "lancedb") {
-    validated.vectorStore.path = path.resolve(process.cwd(), "data", "lancedb");
+    validated.vectorStore.path = DEFAULT_DATA_PATH;
   }
 
   return validated;
@@ -236,7 +243,7 @@ export function getMinimalConfig(overrides?: Partial<AppConfig>): AppConfig {
     },
     vectorStore: {
       provider: "lancedb",
-      path: path.resolve(process.cwd(), "data", "lancedb"),
+      path: DEFAULT_DATA_PATH,
     },
     tables: { code: "hytale_methods", clientUI: "hytale_client_ui", gamedata: "hytale_gamedata" },
     api: {
