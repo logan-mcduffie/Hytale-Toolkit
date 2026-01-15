@@ -63,9 +63,10 @@ try {
     $McpServerPathUnix = $McpServerPath -replace '\\', '/'
 
     # The MCP server auto-detects its database path relative to itself
+    # Windows requires cmd /c wrapper to execute npx
     $McpConfig = @{
-        command = "npx"
-        args = @("tsx", $McpServerPathUnix)
+        command = "cmd"
+        args = @("/c", "npx", "tsx", $McpServerPathUnix)
         env = @{
             VOYAGE_API_KEY = $VoyageApiKey
         }
