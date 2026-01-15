@@ -4,13 +4,21 @@ import { embedChunks, type EmbeddedChunk } from "./embedder.js";
 import { createTable } from "./db.js";
 import * as path from "path";
 import * as fs from "fs";
+import { fileURLToPath } from "url";
 
-const DEFAULT_SOURCE_DIR = "C:/Users/logan/Documents/HytaleMods/decompiled/com/hypixel";
-const DEFAULT_DB_PATH = "C:/Users/logan/Documents/HytaleMods/hytale-rag/data/lancedb";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DEFAULT_DB_PATH = path.join(__dirname, "..", "data", "lancedb");
 
 async function main() {
-  const sourceDir = process.argv[2] || DEFAULT_SOURCE_DIR;
+  const sourceDir = process.argv[2];
   const dbPath = process.argv[3] || DEFAULT_DB_PATH;
+
+  if (!sourceDir) {
+    console.error("Error: Source directory required");
+    console.error("Usage: npm run ingest <source-dir> [db-path]");
+    process.exit(1);
+  }
 
   const apiKey = process.env.VOYAGE_API_KEY;
   if (!apiKey) {

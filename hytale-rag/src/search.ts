@@ -2,7 +2,12 @@
 import { embedQuery } from "./embedder.js";
 import { search, getStats, type SearchResult } from "./db.js";
 
-const DEFAULT_DB_PATH = "C:/Users/logan/Documents/HytaleMods/hytale-rag/data/lancedb";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const DEFAULT_DB_PATH = join(__dirname, "..", "data", "lancedb");
 
 function formatResult(result: SearchResult, index: number, verbose: boolean): string {
   const lines: string[] = [];

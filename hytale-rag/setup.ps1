@@ -15,7 +15,7 @@ try {
 
     # Get the script's directory (where hytale-rag lives)
     $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $McpServerPath = Join-Path $ScriptDir "src\mcp-server.ts"
+    $McpServerPath = Join-Path $ScriptDir "src\index.ts"
 
     Write-Host "Script directory: $ScriptDir" -ForegroundColor Gray
     Write-Host ""
@@ -108,9 +108,13 @@ try {
     Write-Host "     'Find methods related to inventory management'" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Available tools:" -ForegroundColor White
-    Write-Host "  Code Search:" -ForegroundColor Yellow
-    Write-Host "  - search_hytale_code: Semantic search over 37,000+ methods" -ForegroundColor Gray
-    Write-Host "  - hytale_code_stats: Show code database statistics" -ForegroundColor Gray
+    Write-Host "  Server Code Search:" -ForegroundColor Yellow
+    Write-Host "  - search_hytale_code: Semantic search over 37,000+ server methods" -ForegroundColor Gray
+    Write-Host "  - hytale_code_stats: Show server code database statistics" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "  Client UI Search:" -ForegroundColor Yellow
+    Write-Host "  - search_hytale_client_code: Search 353 UI files (XAML, .ui, JSON)" -ForegroundColor Gray
+    Write-Host "  - hytale_client_code_stats: Show client UI statistics" -ForegroundColor Gray
     Write-Host ""
     Write-Host "  Game Data Search:" -ForegroundColor Yellow
     Write-Host "  - search_hytale_gamedata: Search 8,400+ items, recipes, NPCs, drops, etc." -ForegroundColor Gray
