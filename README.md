@@ -2,13 +2,55 @@
 
 A complete toolkit for Hytale server mod development.
 
+## Setup
+
+Before using this toolkit, you need to generate the decompiled source code and documentation locally. This is required due to [Hytale's EULA](https://hytale.com/eula) which prohibits distribution of game source code.
+
+### 1. Decompile the Server
+
+Run Vineflower to decompile the Hytale server JAR:
+
+```bash
+# Windows (PowerShell)
+java -jar tools/vineflower.jar -iec=1 -iib=1 -bsm=1 -dcl=1 `
+  -e=tools/annotations.jar `
+  "<path-to-your-hytale-install>/server/HytaleServer.jar" `
+  decompiled
+
+# Linux/Mac
+java -jar tools/vineflower.jar -iec=1 -iib=1 -bsm=1 -dcl=1 \
+  -e=tools/annotations.jar \
+  "<path-to-your-hytale-install>/server/HytaleServer.jar" \
+  decompiled
+```
+
+Replace `<path-to-your-hytale-install>` with your Hytale installation directory.
+
+This creates the `/decompiled` folder with the full server source code.
+
+### 2. Generate Javadocs
+
+Generate searchable API documentation from the decompiled source:
+
+```bash
+# Windows (PowerShell)
+javadoc -d docs -sourcepath decompiled -subpackages com.hypixel `
+  -quiet -Xdoclint:none
+
+# Linux/Mac
+javadoc -d docs -sourcepath decompiled -subpackages com.hypixel \
+  -quiet -Xdoclint:none
+```
+
+This creates the `/docs` folder. Open `docs/index.html` in a browser.
+
 ## Contents
 
 ### `/decompiled`
-Decompiled Hytale server source code. Browse and search the full server implementation.
+Decompiled Hytale server source code (generated locally). Browse and search the full server implementation.
 
 ### `/docs`
-Javadocs generated from the decompiled source. Open `index.html` in a browser for searchable API documentation.
+Javadocs generated from the decompiled source (generated locally). Open `index.html` in a browser for searchable API documentation.
 
 ### `/hytale-rag`
 LLM-agnostic semantic search for Hytale code and game data. Includes 37,000+ indexed methods and 8,400+ game data items searchable by natural language.
@@ -101,10 +143,11 @@ Utilities used to generate this toolkit:
 
 ## Quick Start
 
-1. Browse `/docs` for API reference
-2. Use `/decompiled` to understand implementation details
-3. Set up `/hytale-rag` for AI-powered code search
-4. Copy `/plugin-template` to start your mod
+1. Run the [Setup](#setup) steps to generate `/decompiled` and `/docs`
+2. Browse `/docs` for API reference
+3. Use `/decompiled` to understand implementation details
+4. Set up `/hytale-rag` for AI-powered code search
+5. Copy `/plugin-template` to start your mod
 
 ## License
 

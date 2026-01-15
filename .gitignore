@@ -23,3 +23,7 @@ dist/
 
 # Environment
 .env
+
+# Decompiled Hytale code (users must generate locally)
+decompiled/
+docs/
