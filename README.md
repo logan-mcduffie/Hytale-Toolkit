@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src=".github/logo.png" alt="Hytale Modding Toolkit" width="200">
+
 # Hytale Modding Toolkit
 
 *Searchable docs • AI-powered code search • Ready-to-use templates*
