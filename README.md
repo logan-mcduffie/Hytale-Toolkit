@@ -95,7 +95,12 @@ The REST API is now available at `http://localhost:3000`.
 ```bash
 cd hytale-rag
 npm install
-VOYAGE_API_KEY=your-key npm start
+
+# Set up your API key
+cp .env.example .env
+# Edit .env and add your Voyage API key
+
+npm start
 ```
 
 **Server Modes:**
@@ -131,7 +136,19 @@ This indexes XAML templates, .ui components, and NodeEditor definitions for sear
 
 **Claude Code Integration:**
 
-Configure hytale-rag as an MCP server in Claude Code, then ask things like:
+To use hytale-rag as an MCP server in Claude Code:
+
+1. Get a free API key at https://www.voyageai.com/
+2. Run the setup script:
+   ```bash
+   cd hytale-rag
+   python setup.py
+   ```
+   The script will prompt for your API key, then install dependencies and configure Claude Code automatically. Works on Windows, macOS, and Linux.
+
+3. Restart Claude Code
+
+Then ask things like:
 - "Search the Hytale server code for player movement handling"
 - "Search the client UI files for inventory layout"
 - "Find methods related to inventory management"
