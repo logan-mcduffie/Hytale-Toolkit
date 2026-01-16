@@ -1,192 +1,55 @@
+<div align="center">
+
 # Hytale Modding Toolkit
 
-A complete toolkit for Hytale server mod development.
+*Searchable docs • AI-powered code search • Ready-to-use templates*
 
-## Setup
+[![Java](https://img.shields.io/badge/Java-25-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
+[![Wiki](https://img.shields.io/badge/Docs-Wiki-green?style=flat-square&logo=github)](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/2.-Hytale-RAG-Database)
 
-Before using this toolkit, you need to generate the decompiled source code and documentation locally. This is required due to [Hytale's EULA](https://hytale.com/eula) which prohibits distribution of game source code.
+---
+<div align="center">
+<sub><i>"Give me six hours to chop down a tree and I will spend the first four sharpening the axe."</i>
+<br>
+— Abraham Lincoln</sub>
+</div>
 
-### 1. Decompile the Server
+</div>
 
-Run Vineflower to decompile the Hytale server JAR. Replace `<path-to-your-hytale-install>` with your Hytale installation directory (typically `C:\Users\<username>\AppData\Roaming\Hytale\install\release\package\game\latest`).
+## The Problem
 
-**Note:** This requires at least 8GB of heap space to complete successfully.
+Hytale's modding API is powerful but undocumented. As a mod developer, you're working blind:
 
-```bash
-# Windows (PowerShell)
-java -Xmx8G -jar tools/vineflower.jar -iec=1 -iib=1 -bsm=1 -dcl=1 -e=tools/annotations.jar "<path-to-your-hytale-install>/server/HytaleServer.jar" decompiled
+- **No official documentation** - The server JAR has thousands of classes, but no guides on how to use them
+- **No searchable reference** - You can't easily find the right class or method for what you need
+- **No project templates** - Setting up a mod project from scratch means guessing at the build configuration
+- **No AI assistance** - LLMs can't help because they don't have access to Hytale's codebase
 
-# Linux/Mac
-java -Xmx8G -jar tools/vineflower.jar -iec=1 -iib=1 -bsm=1 -dcl=1 -e=tools/annotations.jar "<path-to-your-hytale-install>/server/HytaleServer.jar" decompiled
-```
+You end up spending more time reverse-engineering the server than actually building your mod.
 
-This creates the `/decompiled` folder with the full server source code.
+## The Solution
 
-### 2. Fix Decompilation Artifacts
+This toolkit gives you everything you need to understand and work with the Hytale server:
 
-Fix assertion-related decompilation issues:
+### 📚 Searchable Javadocs
+Generate browsable API documentation from the decompiled server. Find classes, methods, and their signatures instantly.
 
-```bash
-python fix-assertions.py
-```
+### 🔍 AI-Powered Code Search
+Ask natural language questions like *"how does player inventory work?"* and get relevant code snippets. Works with Claude Code, REST APIs, or any OpenAI-compatible client.
 
-This fixes `<unrepresentable>` tokens that would prevent javadoc generation.
+### 🚀 Ready-to-Use Templates
+Start building immediately with a pre-configured Maven project. Or use the `/init-mod` command with your AI assistant to scaffold a complete mod in seconds.
 
-### 3. Generate Javadocs
+### 💻 Full Source Access
+When the docs aren't enough, browse the actual decompiled implementation to understand exactly how things work.
 
-Generate searchable API documentation from the decompiled source:
+## Get Started
 
-```bash
-# Windows (PowerShell)
-javadoc -d docs -sourcepath decompiled -subpackages com.hypixel -classpath tools/annotations.jar -quiet -Xdoclint:none --ignore-source-errors
-
-# Linux/Mac
-javadoc -d docs -sourcepath decompiled -subpackages com.hypixel -classpath tools/annotations.jar -quiet -Xdoclint:none --ignore-source-errors
-```
-
-This creates the `/docs` folder. Open `docs/index.html` in a browser.
-
-**Note:** The `--ignore-source-errors` flag allows javadoc to generate documentation despite errors in third-party library code.
-
-## Contents
-
-### `/decompiled`
-Decompiled Hytale server source code (generated locally). Browse and search the full server implementation.
-
-### `/docs`
-Javadocs generated from the decompiled source (generated locally). Open `index.html` in a browser for searchable API documentation.
-
-### `/hytale-rag`
-LLM-agnostic semantic search for Hytale code and game data. Includes indexed methods from both server and client code, plus 8,400+ game data items searchable by natural language.
-
-**Option 1: Docker (Recommended)**
-
-1. Download `lancedb.tar.gz` from [GitHub Releases](https://github.com/logan-mcduffie/Hytale-Toolkit/releases)
-2. Get a free API key at https://www.voyageai.com/
-3. Extract and set up:
-
-```bash
-tar -xzf lancedb.tar.gz  # Extract the pre-indexed database
-
-# Save your API key (one-time setup)
-echo "VOYAGE_API_KEY=your-key-here" > .env
-```
-
-4. Run the server:
-
-```bash
-# Linux/Mac
-docker run --env-file .env -p 3000:3000 \
-  -v $(pwd)/lancedb:/app/data/lancedb:ro \
-  ghcr.io/logan-mcduffie/hytale-rag
-```
-
-```powershell
-# Windows (PowerShell)
-docker run --env-file .env -p 3000:3000 `
-  -v "${PWD}/lancedb:/app/data/lancedb:ro" `
-  ghcr.io/logan-mcduffie/hytale-rag
-```
-
-The REST API is now available at `http://localhost:3000`.
-
-**Option 2: Local Development**
-
-```bash
-cd hytale-rag
-npm install
-
-# Set up your API key
-cp .env.example .env
-# Edit .env and add your Voyage API key
-
-npm start
-```
-
-**Server Modes:**
-
-Set `HYTALE_RAG_MODE` environment variable to choose which server(s) to run:
-- `mcp` - MCP server for Claude Code (default when running via stdio)
-- `rest` - REST API on port 3000 (default for Docker)
-- `openai` - OpenAI-compatible function calling on port 3001
-- `all` - All servers simultaneously
-
-**REST API Example:**
-```bash
-# Search server code
-curl -X POST http://localhost:3000/v1/search/code \
-  -H "Content-Type: application/json" \
-  -d '{"query": "player inventory management"}'
-
-# Search client UI files
-curl -X POST http://localhost:3000/v1/search/client-code \
-  -H "Content-Type: application/json" \
-  -d '{"query": "inventory hotbar layout"}'
-```
-
-**Indexing Client UI Files:**
-
-To index the client UI files for semantic search:
-```bash
-cd hytale-rag
-npm run ingest-client "<path-to-your-hytale-install>/Client/Data"
-```
-
-This indexes XAML templates, .ui components, and NodeEditor definitions for searching.
-
-**Claude Code Integration:**
-
-To use hytale-rag as an MCP server in Claude Code:
-
-1. Get a free API key at https://www.voyageai.com/
-2. Run the setup script:
-   ```bash
-   cd hytale-rag
-   python setup.py
-   ```
-   The script will prompt for your API key, then install dependencies and configure Claude Code automatically. Works on Windows, macOS, and Linux.
-
-3. Restart Claude Code
-
-Then ask things like:
-- "Search the Hytale server code for player movement handling"
-- "Search the client UI files for inventory layout"
-- "Find methods related to inventory management"
-- "What items drop from zombies?"
-- "How does the farming system work?"
-
-### `/plugin-template`
-A Maven project template for creating Hytale server plugins. Clone this as a starting point for your mod.
-
-**Requirements:**
-- Java 25
-- Maven (or use your IDE's built-in Maven support)
-
-**Setup:**
-1. Copy the `plugin-template` folder
-2. Update `pom.xml` with your plugin's groupId/artifactId
-3. Install the Hytale server JAR to your local Maven repo:
-   ```
-   mvn install:install-file -Dfile="path/to/HytaleServer.jar" \
-     -DgroupId=com.hypixel.hytale \
-     -DartifactId=HytaleServer-parent \
-     -Dversion=1.0-SNAPSHOT \
-     -Dpackaging=jar
-   ```
-
-### `/tools`
-Utilities used to generate this toolkit:
-- `vineflower.jar` - Decompiler (for regenerating `/decompiled` when Hytale updates)
-- `annotations.jar` - Annotation stubs for decompilation
-
-## Quick Start
-
-1. Run the [Setup](#setup) steps to generate `/decompiled` and `/docs`
-2. Browse `/docs` for API reference
-3. Use `/decompiled` to understand implementation details
-4. Set up `/hytale-rag` for AI-powered code search
-5. Copy `/plugin-template` to start your mod
-
-## License
-
-This toolkit is for educational and modding purposes. Hytale is a trademark of Hypixel Studios.
+1. **[Setup Guide](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/1.-Setup)** - Generate decompiled source and Javadocs
+2. **[Hytale RAG Database](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/2.-Hytale-RAG-Database)** - Set up AI-powered code search
+3. **[Making Your First Mod](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/3.-Making-Your-First-Mod)** - Create your first plugin
+<div align="center">
+<sub>This toolkit is for educational and modding purposes. Hytale is a trademark of Hypixel Studios.</sub>
+</div>
