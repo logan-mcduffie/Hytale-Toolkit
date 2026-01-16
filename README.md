@@ -8,40 +8,33 @@ Before using this toolkit, you need to generate the decompiled source code and d
 
 ### 1. Decompile the Server
 
-Run Vineflower to decompile the Hytale server JAR:
+Run Vineflower to decompile the Hytale server JAR. Replace `<path-to-your-hytale-install>` with your Hytale installation directory (typically `C:\Users\<username>\AppData\Roaming\Hytale\install\release\package\game\latest`).
+
+**Note:** This requires at least 8GB of heap space to complete successfully.
 
 ```bash
 # Windows (PowerShell)
-java -jar tools/vineflower.jar -iec=1 -iib=1 -bsm=1 -dcl=1 `
-  -e=tools/annotations.jar `
-  "<path-to-your-hytale-install>/server/HytaleServer.jar" `
-  decompiled
+java -Xmx8G -jar tools/vineflower.jar -iec=1 -iib=1 -bsm=1 -dcl=1 -e=tools/annotations.jar "<path-to-your-hytale-install>/server/HytaleServer.jar" decompiled
 
 # Linux/Mac
-java -jar tools/vineflower.jar -iec=1 -iib=1 -bsm=1 -dcl=1 \
-  -e=tools/annotations.jar \
-  "<path-to-your-hytale-install>/server/HytaleServer.jar" \
-  decompiled
+java -Xmx8G -jar tools/vineflower.jar -iec=1 -iib=1 -bsm=1 -dcl=1 -e=tools/annotations.jar "<path-to-your-hytale-install>/server/HytaleServer.jar" decompiled
 ```
-
-Replace `<path-to-your-hytale-install>` with your Hytale installation directory.
 
 This creates the `/decompiled` folder with the full server source code.
 
-### 2. Locate Client UI Files (Optional)
+### 2. Fix Decompilation Artifacts
 
-The Hytale client is a native C++ application (not Java), but it includes UI definition files that can be indexed for modding. These files are located in your Hytale installation at:
+Fix assertion-related decompilation issues:
 
+```bash
+# Windows (PowerShell)
+.\fix-assertions.ps1
+
+# Linux/Mac
+chmod +x fix-assertions.sh && ./fix-assertions.sh
 ```
-<path-to-your-hytale-install>/Client/Data/
-```
 
-This directory contains:
-- **XAML files** - Noesis GUI templates for UI styling and layout
-- **.ui files** - Hytale's custom UI component definitions
-- **JSON files** - NodeEditor node schemas and configuration
-
-No decompilation is needed - these files are already in readable format.
+This fixes `<unrepresentable>` tokens and empty static blocks that would prevent javadoc generation.
 
 ### 3. Generate Javadocs
 
@@ -49,23 +42,20 @@ Generate searchable API documentation from the decompiled source:
 
 ```bash
 # Windows (PowerShell)
-javadoc -d docs -sourcepath decompiled -subpackages com.hypixel `
-  -quiet -Xdoclint:none
+javadoc -d docs -sourcepath decompiled -subpackages com.hypixel -classpath tools/annotations.jar -quiet -Xdoclint:none --ignore-source-errors
 
 # Linux/Mac
-javadoc -d docs -sourcepath decompiled -subpackages com.hypixel \
-  -quiet -Xdoclint:none
+javadoc -d docs -sourcepath decompiled -subpackages com.hypixel -classpath tools/annotations.jar -quiet -Xdoclint:none --ignore-source-errors
 ```
 
 This creates the `/docs` folder. Open `docs/index.html` in a browser.
+
+**Note:** The `--ignore-source-errors` flag allows javadoc to generate documentation despite errors in third-party library code.
 
 ## Contents
 
 ### `/decompiled`
 Decompiled Hytale server source code (generated locally). Browse and search the full server implementation.
-
-### Client UI Files
-The Hytale client UI files (XAML, .ui, JSON) are located in your Hytale installation's `Client/Data` directory. These define the visual appearance of the game UI and can be indexed for semantic search.
 
 ### `/docs`
 Javadocs generated from the decompiled source (generated locally). Open `index.html` in a browser for searchable API documentation.
