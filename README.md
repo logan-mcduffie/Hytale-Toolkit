@@ -10,11 +10,10 @@
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/2.-Hytale-RAG-Database)
 
 ---
-<div align="center">
+
 <sub><i>"Give me six hours to chop down a tree and I will spend the first four sharpening the axe."</i>
 <br>
 — Abraham Lincoln</sub>
-</div>
 
 </div>
 
@@ -50,6 +49,9 @@ When the docs aren't enough, browse the actual decompiled implementation to unde
 1. **[Setup Guide](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/1.-Setup)** - Generate decompiled source and Javadocs
 2. **[Hytale RAG Database](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/2.-Hytale-RAG-Database)** - Set up AI-powered code search
 3. **[Making Your First Mod](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/3.-Making-Your-First-Mod)** - Create your first plugin
+
+---
+
 <div align="center">
 <sub>This toolkit is for educational and modding purposes. Hytale is a trademark of Hypixel Studios.</sub>
 </div>

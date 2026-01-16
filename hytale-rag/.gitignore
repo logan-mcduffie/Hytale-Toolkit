@@ -4,5 +4,6 @@ dist/
 .env
 tmpclaude-*
 
-# Keep the LanceDB database - it's the pre-built index
-# data/lancedb/ is intentionally tracked
+# Ignore the LanceDB database - users download from GitHub Releases
+data/lancedb/*
+!data/lancedb/.gitkeep
