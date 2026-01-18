@@ -310,7 +310,10 @@ def decompile_server(install_path: str, env: dict[str, str]) -> bool:
 
     # Run Vineflower with progress output
     cmd = [
-        "java", "-jar", str(VINEFLOWER_JAR),
+        "java",
+        "-Xms2G",   # Initial heap size
+        "-Xmx8G",   # Maximum heap size
+        "-jar", str(VINEFLOWER_JAR),
         "-dgs=1",  # Decompile generic signatures
         "-asc=1",  # ASCII string characters
         "-rsy=1",  # Remove synthetic class members
@@ -506,6 +509,8 @@ def generate_javadocs(include_private: bool = False) -> bool:
     # Build javadoc command
     cmd = [
         "javadoc",
+        "-J-Xms2G",         # Initial heap size
+        "-J-Xmx8G",         # Maximum heap size
         "-d", str(JAVADOCS_DIR),
         "-quiet",
         "-Xdoclint:none",  # Suppress warnings
