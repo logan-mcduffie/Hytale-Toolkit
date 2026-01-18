@@ -22,8 +22,8 @@ embedding:
 
   # Model selection (optional - uses provider defaults if not specified)
   models:
-    code: voyage-code-2      # For Java code embeddings
-    text: voyage-3           # For game data embeddings
+    code: voyage-code-3      # For Java code embeddings
+    text: voyage-4-large     # For game data embeddings
 
   # Batch processing settings
   batchSize: 128             # Max texts per API call
@@ -32,9 +32,6 @@ embedding:
 vectorStore:
   # Vector store provider: lancedb | pinecone | chroma | weaviate
   provider: lancedb
-
-  # LanceDB settings
-  path: ./data/lancedb
 
 tables:
   # Table names for stored data

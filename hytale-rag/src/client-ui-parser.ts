@@ -7,6 +7,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 
 /**
  * Types of client UI content
@@ -26,6 +27,7 @@ export interface ClientUIChunk {
   name: string;                  // Human-readable name
   filePath: string;              // Full path to the file
   relativePath: string;          // Path relative to Client/Data
+  fileHash: string;              // SHA-256 hash for incremental indexing
   content: string;               // Raw file content
   category?: string;             // e.g., "DesignSystem", "InGame", "MainMenu"
   textForEmbedding: string;      // Text optimized for semantic search
@@ -204,6 +206,7 @@ function parseUIFile(
   const relativePath = path.relative(basePath, filePath).replace(/\\/g, "/");
   const name = extractName(filePath);
   const category = extractCategory(relativePath);
+  const fileHash = crypto.createHash("sha256").update(content).digest("hex");
 
   const chunk: ClientUIChunk = {
     id: `${type}:${relativePath}`,
@@ -211,6 +214,7 @@ function parseUIFile(
     name,
     filePath,
     relativePath,
+    fileHash,
     content,
     category,
     textForEmbedding: "", // Will be set below

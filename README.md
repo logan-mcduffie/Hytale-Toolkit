@@ -9,7 +9,6 @@
 [![Java](https://img.shields.io/badge/Java-25-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Wiki](https://img.shields.io/badge/Docs-Wiki-green?style=flat-square&logo=github)](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/2.-Hytale-RAG-Database)
 
 <sub><i>"Give me six hours to chop down a tree and I will spend the first four sharpening the axe."</i>
 <br>

@@ -3,7 +3,29 @@ dist/
 *.log
 .env
 tmpclaude-*
+__pycache__/
 
-# Ignore the LanceDB database - users download from GitHub Releases
-data/lancedb/*
-!data/lancedb/.gitkeep
+# Legacy startup script (may contain API keys)
+start-mcp.cmd
+
+# Ignore the LanceDB databases - users download or generate locally
+data/voyage/lancedb/*
+data/ollama/lancedb/*
+!data/voyage/lancedb/.gitkeep
+!data/ollama/lancedb/.gitkeep
+
+# Version files (user-specific, written by setup.py)
+data/voyage/.version
+data/ollama/.version
+
+# Temp files from javadoc generation
+.javadoc-files.txt
+
+# Generated MCP startup scripts (user-specific paths)
+start-mcp.ps1
+start-mcp.sh
+cursor-mcp-config.json
+
+# Release staging (personal use)
+stage-release.py
+release-staging/

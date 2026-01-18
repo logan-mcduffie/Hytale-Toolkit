@@ -9,6 +9,7 @@ import { z, ZodSchema } from "zod";
 import type { EmbeddingProvider } from "../../providers/embedding/interface.js";
 import type { VectorStore } from "../../providers/vectorstore/interface.js";
 import type { AppConfig } from "../../config/schema.js";
+import type { VersionChecker } from "../version-checker.js";
 
 /**
  * Context provided to tool handlers
@@ -22,6 +23,8 @@ export interface ToolContext {
   config: AppConfig;
   /** Configuration error message (e.g., missing API key) */
   configError?: string;
+  /** Version checker for update notifications */
+  versionChecker?: VersionChecker;
 }
 
 /**

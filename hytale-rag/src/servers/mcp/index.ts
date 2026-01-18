@@ -15,11 +15,12 @@ import { formatClientUIStats, type ClientUIStats } from "../../core/tools/client
 import { formatGameDataStats } from "../../core/tools/gamedata-stats.js";
 import type { CodeSearchResult, CodeStats, GameDataSearchResult, GameDataStats } from "../../core/types.js";
 import type { ClientUISearchResult } from "../../core/tools/search-client-code.js";
+import type { VersionInfo } from "../../core/version-checker.js";
 
 /**
  * Format tool result for MCP response
  */
-function formatToolResult(toolName: string, data: unknown): string {
+function formatToolResult(toolName: string, data: unknown, versionInfo?: VersionInfo | null): string {
   switch (toolName) {
     case "search_hytale_code":
       return formatCodeResults(data as CodeSearchResult[]);
@@ -28,11 +29,11 @@ function formatToolResult(toolName: string, data: unknown): string {
     case "search_hytale_gamedata":
       return formatGameDataResults(data as GameDataSearchResult[]);
     case "hytale_code_stats":
-      return formatCodeStats(data as CodeStats);
+      return formatCodeStats(data as CodeStats, versionInfo);
     case "hytale_client_code_stats":
-      return formatClientUIStats(data as ClientUIStats);
+      return formatClientUIStats(data as ClientUIStats, versionInfo);
     case "hytale_gamedata_stats":
-      return formatGameDataStats(data as GameDataStats);
+      return formatGameDataStats(data as GameDataStats, versionInfo);
     default:
       return JSON.stringify(data, null, 2);
   }
@@ -48,9 +49,12 @@ export async function startMCPServer(
   registry: ToolRegistry,
   context: ToolContext
 ): Promise<void> {
+  // Get version from version checker or fall back to default
+  const version = context.versionChecker?.getCachedVersion()?.currentVersion ?? "2.0.0";
+
   const server = new McpServer({
     name: "hytale-rag",
-    version: "2.0.0",
+    version,
   });
 
   // Register all tools from the registry using the new registerTool API
@@ -71,7 +75,9 @@ export async function startMCPServer(
           };
         }
 
-        const formatted = formatToolResult(tool.name, result.data);
+        // Get cached version info for stats tools (non-blocking)
+        const versionInfo = context.versionChecker?.getCachedVersion() ?? null;
+        const formatted = formatToolResult(tool.name, result.data, versionInfo);
         return {
           content: [{ type: "text" as const, text: formatted }],
         };

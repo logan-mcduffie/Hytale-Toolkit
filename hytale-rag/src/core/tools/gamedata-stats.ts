@@ -7,6 +7,7 @@
 import { emptySchema, type EmptyInput } from "../schemas.js";
 import type { ToolDefinition, ToolContext, ToolResult } from "./index.js";
 import type { GameDataStats, GameDataType } from "../types.js";
+import { formatVersionNotice, type VersionInfo } from "../version-checker.js";
 
 /**
  * All possible game data types
@@ -78,7 +79,7 @@ export const gameDataStatsTool: ToolDefinition<EmptyInput, GameDataStats> = {
 /**
  * Format game data stats as markdown (for MCP/display)
  */
-export function formatGameDataStats(stats: GameDataStats): string {
+export function formatGameDataStats(stats: GameDataStats, versionInfo?: VersionInfo | null): string {
   // Format by-type stats, sorted by count
   const byTypeLines = Object.entries(stats.byType)
     .filter(([_, count]) => count > 0)
@@ -93,5 +94,5 @@ export function formatGameDataStats(stats: GameDataStats): string {
 ## By Type:
 ${byTypeLines}
 
-The game data database is ready for semantic search.`;
+The game data database is ready for semantic search.${formatVersionNotice(versionInfo ?? null)}`;
 }

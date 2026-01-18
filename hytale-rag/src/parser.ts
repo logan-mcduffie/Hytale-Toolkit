@@ -1,6 +1,92 @@
 import { parse } from "java-parser";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
+
+/**
+ * Decompilation artifact patterns that need to be fixed before parsing.
+ * Vineflower sometimes produces invalid Java syntax for bytecode it can't represent.
+ */
+const DECOMPILATION_FIXES: Array<{ pattern: RegExp; replacement: string; description: string }> = [
+  {
+    // Remove empty if statements checking $assertionsDisabled
+    // These appear in static blocks and are useless: if (<...>.$assertionsDisabled) { }
+    pattern: /\s*if\s*\([^)]*\$assertionsDisabled[^)]*\)\s*\{\s*\}\s*\n?/g,
+    replacement: "\n",
+    description: "empty assertion if statement",
+  },
+  {
+    // Remove now-empty static blocks (just whitespace/newlines inside braces)
+    pattern: /\n\s*static\s*\{\s*\}/g,
+    replacement: "",
+    description: "empty static block",
+  },
+  {
+    // <unrepresentable>.$assertionsDisabled -> false
+    // This is a synthetic field for assertion state. Replacing with false means
+    // the assertion check block is preserved but won't execute (same as runtime with assertions disabled)
+    pattern: /<unrepresentable>\.\$assertionsDisabled/g,
+    replacement: "false",
+    description: "assertion disabled flag",
+  },
+  {
+    // Any other <unrepresentable> references -> null
+    // This catches any other decompilation artifacts we haven't seen yet
+    pattern: /<unrepresentable>/g,
+    replacement: "null /* <unrepresentable> */",
+    description: "unrepresentable bytecode",
+  },
+  {
+    // Empty enum converted to fields: "public enum Foo {\n   private" -> "public class Foo {\n   private"
+    // Vineflower sometimes decompiles utility classes as empty enums
+    pattern: /\benum\s+(\w+)\s*\{\s*\n(\s*)(private|protected|public|static|final)/g,
+    replacement: "class $1 {\n$2$3",
+    description: "empty enum with fields",
+  },
+  {
+    // Qualified generic inner class instantiation: "new Outer<T>.Inner<U>()" -> "new Outer.Inner<U>()"
+    // The java-parser doesn't handle type arguments on the outer class in qualified instantiation
+    pattern: /new\s+(\w+)<[^>]+>\.(\w+)/g,
+    replacement: "new $1.$2",
+    description: "qualified generic inner class",
+  },
+];
+
+/**
+ * Preprocess Java source to fix common decompilation artifacts.
+ * Returns the cleaned source and a list of fixes applied.
+ */
+function preprocessSource(source: string, filePath: string): { source: string; fixes: string[] } {
+  const fixes: string[] = [];
+  let cleaned = source;
+
+  for (const fix of DECOMPILATION_FIXES) {
+    const matches = cleaned.match(fix.pattern);
+    if (matches && matches.length > 0) {
+      fixes.push(`Fixed ${matches.length} ${fix.description} artifact(s) in ${path.basename(filePath)}`);
+      cleaned = cleaned.replace(fix.pattern, fix.replacement);
+    }
+  }
+
+  // Special handling for TOP-LEVEL interfaces: remove static initializer blocks
+  // Interfaces can have static METHODS but not static BLOCKS - this is a decompilation artifact
+  // Only apply this to files where the main type is an interface (not classes with nested interfaces)
+  // Check if file declares a top-level interface by looking for "public interface X" or just "interface X"
+  // at the beginning of a line (not nested inside a class body)
+  const hasTopLevelClass = /^\s*(public\s+)?(abstract\s+)?(final\s+)?class\s+\w+/m.test(cleaned);
+  const hasTopLevelInterface = /^\s*(public\s+)?interface\s+\w+/m.test(cleaned);
+
+  if (hasTopLevelInterface && !hasTopLevelClass) {
+    const staticBlockPattern = /\n\s*static\s*\{[\s\S]*?\}\s*(?=\n\s*\})/g;
+    const staticMatches = cleaned.match(staticBlockPattern);
+    if (staticMatches) {
+      fixes.push(`Removed ${staticMatches.length} static block(s) from interface in ${path.basename(filePath)}`);
+      cleaned = cleaned.replace(staticBlockPattern, "");
+    }
+  }
+
+  return { source: cleaned, fixes };
+}
 
 export interface MethodChunk {
   id: string; // unique identifier: package.ClassName.methodName(params)
@@ -10,6 +96,7 @@ export interface MethodChunk {
   methodSignature: string;
   content: string; // the actual code
   filePath: string;
+  fileHash: string; // SHA-256 hash of file content for incremental indexing
   lineStart: number;
   lineEnd: number;
   imports: string[];
@@ -101,7 +188,8 @@ function extractMethods(
   source: string,
   packageName: string,
   imports: string[],
-  filePath: string
+  filePath: string,
+  fileHash: string
 ): MethodChunk[] {
   const chunks: MethodChunk[] = [];
 
@@ -186,6 +274,7 @@ function extractMethods(
       methodSignature,
       content: methodText,
       filePath,
+      fileHash,
       lineStart,
       lineEnd,
       imports,
@@ -200,16 +289,34 @@ export function parseJavaFile(filePath: string): ParseResult {
   const errors: string[] = [];
   const chunks: MethodChunk[] = [];
 
-  let source: string;
+  // Skip package-info.java files - they don't contain methods and the decompiled
+  // version often has invalid syntax (e.g., "interface package-info")
+  if (path.basename(filePath) === "package-info.java") {
+    return { chunks: [], errors: [] };
+  }
+
+  let rawSource: string;
   try {
-    source = fs.readFileSync(filePath, "utf-8");
+    rawSource = fs.readFileSync(filePath, "utf-8");
   } catch (e) {
     return { chunks: [], errors: [`Failed to read file: ${filePath}`] };
   }
 
-  // Skip very small files (probably just package-info.java or similar)
-  if (source.length < 50) {
+  // Skip very small files
+  if (rawSource.length < 50) {
     return { chunks: [], errors: [] };
+  }
+
+  // Compute file hash for incremental indexing
+  const fileHash = crypto.createHash("sha256").update(rawSource).digest("hex");
+
+  // Preprocess to fix decompilation artifacts
+  const { source, fixes } = preprocessSource(rawSource, filePath);
+  // Log fixes for visibility (these go to the errors array as info, not actual errors)
+  // We could add a separate "fixes" array but for now just note them
+  if (fixes.length > 0) {
+    // Don't add to errors - these are successful fixes, not errors
+    // console.log(`  ${fixes.join(", ")}`);
   }
 
   let cst: any;
@@ -232,7 +339,7 @@ export function parseJavaFile(filePath: string): ParseResult {
     const decl = classDecl || interfaceDecl;
     if (!decl) continue;
 
-    const methods = extractMethods(decl, source, packageName, imports, filePath);
+    const methods = extractMethods(decl, source, packageName, imports, filePath, fileHash);
     chunks.push(...methods);
   }
 
@@ -241,7 +348,8 @@ export function parseJavaFile(filePath: string): ParseResult {
 
 export async function parseDirectory(
   dirPath: string,
-  onProgress?: (current: number, total: number, file: string) => void
+  onProgress?: (current: number, total: number, file: string) => void,
+  pathFilter?: (filePath: string) => boolean
 ): Promise<{ chunks: MethodChunk[]; errors: string[] }> {
   const allChunks: MethodChunk[] = [];
   const allErrors: string[] = [];
@@ -256,7 +364,10 @@ export async function parseDirectory(
       if (entry.isDirectory()) {
         collectFiles(fullPath);
       } else if (entry.name.endsWith(".java")) {
-        javaFiles.push(fullPath);
+        // Apply path filter if provided
+        if (!pathFilter || pathFilter(fullPath)) {
+          javaFiles.push(fullPath);
+        }
       }
     }
   }

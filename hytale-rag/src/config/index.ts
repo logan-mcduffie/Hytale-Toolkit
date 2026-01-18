@@ -13,8 +13,16 @@ import { configSchema, type AppConfig } from "./schema.js";
 // Get the directory where this module is located (for resolving relative paths)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Default data path is relative to the hytale-rag package root
-const DEFAULT_DATA_PATH = path.resolve(__dirname, "..", "..", "data", "lancedb");
+// Base data path is relative to the hytale-rag package root
+const DATA_BASE_PATH = path.resolve(__dirname, "..", "..", "data");
+
+/**
+ * Get the default data path for a given embedding provider
+ * Structure: data/{provider}/lancedb
+ */
+function getDefaultDataPath(provider: string): string {
+  return path.resolve(DATA_BASE_PATH, provider, "lancedb");
+}
 
 /**
  * Deep merge two objects, with source values taking precedence.
@@ -128,6 +136,7 @@ function loadEnvConfig(): Record<string, unknown> {
   const embeddingProvider =
     process.env.HYTALE_RAG_EMBEDDING_PROVIDER ||
     process.env.HYTALE_RAG_EMBEDDING ||
+    process.env.EMBEDDING_PROVIDER ||
     "voyage";
 
   const result: Record<string, unknown> = {};
@@ -144,6 +153,10 @@ function loadEnvConfig(): Record<string, unknown> {
   const apiKey = getEmbeddingApiKey(embeddingProvider);
   if (apiKey) embedding.apiKey = apiKey;
   if (process.env.OLLAMA_BASE_URL) embedding.baseUrl = process.env.OLLAMA_BASE_URL;
+  // Ollama model configuration
+  if (process.env.OLLAMA_MODEL) {
+    embedding.models = { code: process.env.OLLAMA_MODEL, text: process.env.OLLAMA_MODEL };
+  }
   result.embedding = embedding;
 
   // Vector store config
@@ -221,9 +234,9 @@ export function loadConfig(): AppConfig {
   // Validate and apply defaults
   const validated = configSchema.parse(merged);
 
-  // Set default DB path if not specified
+  // Set default DB path if not specified (based on embedding provider)
   if (!validated.vectorStore.path && validated.vectorStore.provider === "lancedb") {
-    validated.vectorStore.path = DEFAULT_DATA_PATH;
+    validated.vectorStore.path = getDefaultDataPath(validated.embedding.provider);
   }
 
   return validated;
@@ -233,6 +246,7 @@ export function loadConfig(): AppConfig {
  * Get a minimal config for testing or CLI tools
  */
 export function getMinimalConfig(overrides?: Partial<AppConfig>): AppConfig {
+  const embeddingProvider = overrides?.embedding?.provider || "voyage";
   const defaults: AppConfig = {
     server: { mode: "mcp", port: 3000, host: "localhost" },
     embedding: {
@@ -243,7 +257,7 @@ export function getMinimalConfig(overrides?: Partial<AppConfig>): AppConfig {
     },
     vectorStore: {
       provider: "lancedb",
-      path: DEFAULT_DATA_PATH,
+      path: getDefaultDataPath(embeddingProvider),
     },
     tables: { code: "hytale_methods", clientUI: "hytale_client_ui", gamedata: "hytale_gamedata" },
     api: {

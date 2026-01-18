@@ -7,6 +7,7 @@
 import { emptySchema, type EmptyInput } from "../schemas.js";
 import type { ToolDefinition, ToolContext, ToolResult } from "./index.js";
 import type { CodeStats } from "../types.js";
+import { formatVersionNotice, type VersionInfo } from "../version-checker.js";
 
 /**
  * Code stats tool definition
@@ -49,12 +50,15 @@ export const codeStatsTool: ToolDefinition<EmptyInput, CodeStats> = {
 /**
  * Format code stats as markdown (for MCP/display)
  */
-export function formatCodeStats(stats: CodeStats): string {
+export function formatCodeStats(stats: CodeStats, versionInfo?: VersionInfo | null): string {
+  const version = versionInfo?.currentVersion ?? "unknown";
   return `# Hytale Codebase Statistics
 
 - **Total Methods:** ${stats.totalMethods.toLocaleString()}
 - **Unique Classes:** ${stats.uniqueClasses.toLocaleString()}
 - **Unique Packages:** ${stats.uniquePackages.toLocaleString()}
 
-The database is ready for semantic code search.`;
+**Database Version:** ${version}
+
+The database is ready for semantic code search.${formatVersionNotice(versionInfo ?? null)}`;
 }

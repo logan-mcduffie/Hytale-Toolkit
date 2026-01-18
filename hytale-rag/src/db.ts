@@ -52,6 +52,7 @@ export async function createTable(
     methodSignature: chunk.methodSignature,
     content: chunk.content,
     filePath: chunk.filePath,
+    fileHash: chunk.fileHash,
     lineStart: chunk.lineStart,
     lineEnd: chunk.lineEnd,
     imports: JSON.stringify(chunk.imports),
@@ -74,6 +75,131 @@ export async function createTable(
 }
 
 /**
+ * Check if a table exists in the database
+ */
+export async function tableExists(
+  dbPath: string,
+  tableName: string = "hytale_methods"
+): Promise<boolean> {
+  try {
+    const db = await lancedb.connect(dbPath);
+    const tables = await db.tableNames();
+    return tables.includes(tableName);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get existing file hashes from the table for incremental indexing
+ * Returns a map of filePath -> fileHash
+ */
+export async function getExistingFileHashes(
+  dbPath: string,
+  tableName: string = "hytale_methods"
+): Promise<Map<string, string>> {
+  const fileHashes = new Map<string, string>();
+
+  try {
+    const db = await lancedb.connect(dbPath);
+    const table = await db.openTable(tableName);
+
+    // Query in batches to handle large tables
+    const batchSize = 10000;
+    let offset = 0;
+
+    while (true) {
+      const batch = await table
+        .query()
+        .select(["filePath", "fileHash"])
+        .limit(batchSize)
+        .offset(offset)
+        .toArray();
+
+      if (batch.length === 0) break;
+
+      for (const row of batch as any[]) {
+        // Only store one hash per file (all methods from same file have same hash)
+        if (row.filePath && row.fileHash && !fileHashes.has(row.filePath)) {
+          fileHashes.set(row.filePath, row.fileHash);
+        }
+      }
+
+      offset += batch.length;
+      if (batch.length < batchSize) break;
+    }
+  } catch {
+    // Table doesn't exist or other error - return empty map
+  }
+
+  return fileHashes;
+}
+
+/**
+ * Delete all rows for the given file paths
+ */
+export async function deleteByFilePaths(
+  dbPath: string,
+  filePaths: string[],
+  tableName: string = "hytale_methods"
+): Promise<number> {
+  if (filePaths.length === 0) return 0;
+
+  const db = await lancedb.connect(dbPath);
+  const table = await db.openTable(tableName);
+
+  const beforeCount = await table.countRows();
+
+  // Delete in batches to avoid query size limits
+  const batchSize = 100;
+  for (let i = 0; i < filePaths.length; i += batchSize) {
+    const batch = filePaths.slice(i, i + batchSize);
+    // Escape single quotes in file paths and build filter
+    const escapedPaths = batch.map((p) => `'${p.replace(/'/g, "''")}'`);
+    const filter = `filePath IN (${escapedPaths.join(", ")})`;
+    await table.delete(filter);
+  }
+
+  const afterCount = await table.countRows();
+  return beforeCount - afterCount;
+}
+
+/**
+ * Add new chunks to an existing table
+ */
+export async function addChunks(
+  dbPath: string,
+  chunks: EmbeddedChunk[],
+  tableName: string = "hytale_methods"
+): Promise<void> {
+  if (chunks.length === 0) return;
+
+  const db = await lancedb.connect(dbPath);
+  const table = await db.openTable(tableName);
+
+  // Prepare data for LanceDB
+  const data = chunks.map((chunk) => ({
+    id: chunk.id,
+    className: chunk.className,
+    packageName: chunk.packageName,
+    methodName: chunk.methodName,
+    methodSignature: chunk.methodSignature,
+    content: chunk.content,
+    filePath: chunk.filePath,
+    fileHash: chunk.fileHash,
+    lineStart: chunk.lineStart,
+    lineEnd: chunk.lineEnd,
+    imports: JSON.stringify(chunk.imports),
+    fields: JSON.stringify(chunk.fields),
+    classJavadoc: chunk.classJavadoc || "",
+    methodJavadoc: chunk.methodJavadoc || "",
+    vector: chunk.vector,
+  }));
+
+  await table.add(data);
+}
+
+/**
  * Create or replace the hytale_gamedata table with embedded chunks
  */
 export async function createGameDataTable(
@@ -89,6 +215,7 @@ export async function createGameDataTable(
     type: chunk.type,
     name: chunk.name,
     filePath: chunk.filePath,
+    fileHash: chunk.fileHash,
     rawJson: chunk.rawJson,
     category: chunk.category || "",
     tags: JSON.stringify(chunk.tags || []),
@@ -108,6 +235,107 @@ export async function createGameDataTable(
   // Create new table
   await db.createTable(tableName, data);
   console.log(`  Created table '${tableName}' with ${data.length} rows`);
+}
+
+/**
+ * Get existing file hashes from game data table for incremental updates
+ */
+export async function getGameDataFileHashes(
+  dbPath: string,
+  tableName: string = "hytale_gamedata"
+): Promise<Map<string, string>> {
+  const fileHashes = new Map<string, string>();
+
+  try {
+    const db = await lancedb.connect(dbPath);
+    const table = await db.openTable(tableName);
+
+    // Query in batches to handle large tables
+    const batchSize = 10000;
+    let offset = 0;
+
+    while (true) {
+      const batch = await table
+        .query()
+        .select(["filePath", "fileHash"])
+        .limit(batchSize)
+        .offset(offset)
+        .toArray();
+
+      if (batch.length === 0) break;
+
+      for (const row of batch) {
+        if (row.filePath && row.fileHash) {
+          fileHashes.set(row.filePath, row.fileHash);
+        }
+      }
+
+      offset += batchSize;
+    }
+  } catch {
+    // Table doesn't exist or is invalid - return empty map
+  }
+
+  return fileHashes;
+}
+
+/**
+ * Delete game data entries by file paths (for incremental updates)
+ */
+export async function deleteGameDataByFilePaths(
+  dbPath: string,
+  filePaths: string[],
+  tableName: string = "hytale_gamedata"
+): Promise<number> {
+  if (filePaths.length === 0) return 0;
+
+  const db = await lancedb.connect(dbPath);
+  const table = await db.openTable(tableName);
+
+  const beforeCount = await table.countRows();
+
+  // Delete in batches to avoid query size limits
+  const batchSize = 100;
+  for (let i = 0; i < filePaths.length; i += batchSize) {
+    const batch = filePaths.slice(i, i + batchSize);
+    const conditions = batch.map((fp) => `filePath = '${fp.replace(/'/g, "''")}'`);
+    await table.delete(conditions.join(" OR "));
+  }
+
+  const afterCount = await table.countRows();
+  return beforeCount - afterCount;
+}
+
+/**
+ * Add game data chunks to existing table (for incremental updates)
+ */
+export async function addGameDataChunks(
+  dbPath: string,
+  chunks: EmbeddedGameDataChunk[],
+  tableName: string = "hytale_gamedata"
+): Promise<void> {
+  if (chunks.length === 0) return;
+
+  const db = await lancedb.connect(dbPath);
+  const table = await db.openTable(tableName);
+
+  // Prepare data for LanceDB
+  const data = chunks.map((chunk) => ({
+    id: chunk.id,
+    type: chunk.type,
+    name: chunk.name,
+    filePath: chunk.filePath,
+    fileHash: chunk.fileHash,
+    rawJson: chunk.rawJson,
+    category: chunk.category || "",
+    tags: JSON.stringify(chunk.tags || []),
+    parentId: chunk.parentId || "",
+    relatedIds: JSON.stringify(chunk.relatedIds || []),
+    textForEmbedding: chunk.textForEmbedding,
+    vector: chunk.vector,
+  }));
+
+  await table.add(data);
 }
 
 /**
@@ -201,6 +429,7 @@ export async function createClientUITable(
     name: chunk.name,
     filePath: chunk.filePath,
     relativePath: chunk.relativePath,
+    fileHash: chunk.fileHash,
     content: chunk.content,
     category: chunk.category || "",
     textForEmbedding: chunk.textForEmbedding,
@@ -217,4 +446,103 @@ export async function createClientUITable(
   // Create new table
   await db.createTable(tableName, data);
   console.log(`  Created table '${tableName}' with ${data.length} rows`);
+}
+
+/**
+ * Get existing file hashes from client UI table for incremental updates
+ */
+export async function getClientUIFileHashes(
+  dbPath: string,
+  tableName: string = "hytale_client_ui"
+): Promise<Map<string, string>> {
+  const fileHashes = new Map<string, string>();
+
+  try {
+    const db = await lancedb.connect(dbPath);
+    const table = await db.openTable(tableName);
+
+    // Query in batches to handle large tables
+    const batchSize = 10000;
+    let offset = 0;
+
+    while (true) {
+      const batch = await table
+        .query()
+        .select(["filePath", "fileHash"])
+        .limit(batchSize)
+        .offset(offset)
+        .toArray();
+
+      if (batch.length === 0) break;
+
+      for (const row of batch) {
+        if (row.filePath && row.fileHash) {
+          fileHashes.set(row.filePath, row.fileHash);
+        }
+      }
+
+      offset += batchSize;
+    }
+  } catch {
+    // Table doesn't exist or is invalid - return empty map
+  }
+
+  return fileHashes;
+}
+
+/**
+ * Delete client UI entries by file paths (for incremental updates)
+ */
+export async function deleteClientUIByFilePaths(
+  dbPath: string,
+  filePaths: string[],
+  tableName: string = "hytale_client_ui"
+): Promise<number> {
+  if (filePaths.length === 0) return 0;
+
+  const db = await lancedb.connect(dbPath);
+  const table = await db.openTable(tableName);
+
+  const beforeCount = await table.countRows();
+
+  // Delete in batches to avoid query size limits
+  const batchSize = 100;
+  for (let i = 0; i < filePaths.length; i += batchSize) {
+    const batch = filePaths.slice(i, i + batchSize);
+    const conditions = batch.map((fp) => `filePath = '${fp.replace(/'/g, "''")}'`);
+    await table.delete(conditions.join(" OR "));
+  }
+
+  const afterCount = await table.countRows();
+  return beforeCount - afterCount;
+}
+
+/**
+ * Add client UI chunks to existing table (for incremental updates)
+ */
+export async function addClientUIChunks(
+  dbPath: string,
+  chunks: EmbeddedClientUIChunk[],
+  tableName: string = "hytale_client_ui"
+): Promise<void> {
+  if (chunks.length === 0) return;
+
+  const db = await lancedb.connect(dbPath);
+  const table = await db.openTable(tableName);
+
+  // Prepare data for LanceDB
+  const data = chunks.map((chunk) => ({
+    id: chunk.id,
+    type: chunk.type,
+    name: chunk.name,
+    filePath: chunk.filePath,
+    relativePath: chunk.relativePath,
+    fileHash: chunk.fileHash,
+    content: chunk.content,
+    category: chunk.category || "",
+    textForEmbedding: chunk.textForEmbedding,
+    vector: chunk.vector,
+  }));
+
+  await table.add(data);
 }

@@ -2,7 +2,7 @@
  * Voyage AI Embedding Provider
  *
  * Implementation of EmbeddingProvider for Voyage AI.
- * Supports voyage-code-2 for code and voyage-3 for text.
+ * Uses voyage-code-3 for code and voyage-4-large for text/gamedata.
  */
 
 import {
@@ -18,16 +18,14 @@ const VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
 
 /** Default models for different purposes */
 const DEFAULT_MODELS = {
-  code: "voyage-code-2",
-  text: "voyage-3",
+  code: "voyage-code-3",
+  text: "voyage-4-large",
 };
 
-/** Vector dimensions by model */
+/** Vector dimensions by model (all support 256, 512, 1024, 2048 via Matryoshka) */
 const MODEL_DIMENSIONS: Record<string, number> = {
-  "voyage-code-2": 1536,
-  "voyage-3": 1024,
-  "voyage-3-lite": 512,
-  "voyage-2": 1024,
+  "voyage-code-3": 1024,
+  "voyage-4-large": 1024,
 };
 
 /** Default batch size (Voyage supports up to 128) */

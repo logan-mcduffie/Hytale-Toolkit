@@ -26,4 +26,8 @@ dist/
 
 # Decompiled Hytale code (users must generate locally)
 decompiled/
+
+# Generated Javadocs
+javadocs/
+
 docs/

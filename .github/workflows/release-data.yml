@@ -9,9 +9,6 @@ on:
         description: 'Release tag to attach data to (e.g., v1.0.0)'
         required: true
 
-env:
-  DATA_DIR: hytale-rag/data/lancedb
-
 jobs:
   package-data:
     runs-on: ubuntu-latest
@@ -30,8 +27,36 @@ jobs:
       - name: Package LanceDB data
         run: |
           cd hytale-rag/data
-          tar -czvf lancedb.tar.gz lancedb/
-          ls -lh lancedb.tar.gz
+
+          # Create output directory
+          mkdir -p release
+
+          # Package Voyage AI databases
+          echo "Packaging Voyage AI databases..."
+
+          # Combined Voyage tarball (all 3 tables)
+          tar -czvf release/lancedb-voyage-all.tar.gz -C voyage lancedb/
+
+          # Individual Voyage tarballs
+          tar -czvf release/lancedb-voyage-code.tar.gz -C voyage/lancedb hytale_methods.lance/
+          tar -czvf release/lancedb-voyage-client.tar.gz -C voyage/lancedb hytale_client_ui.lance/
+          tar -czvf release/lancedb-voyage-gamedata.tar.gz -C voyage/lancedb hytale_gamedata.lance/
+
+          # Package Ollama databases
+          echo "Packaging Ollama databases..."
+
+          # Combined Ollama tarball (all 3 tables)
+          tar -czvf release/lancedb-ollama-all.tar.gz -C ollama lancedb/
+
+          # Individual Ollama tarballs
+          tar -czvf release/lancedb-ollama-code.tar.gz -C ollama/lancedb hytale_methods.lance/
+          tar -czvf release/lancedb-ollama-client.tar.gz -C ollama/lancedb hytale_client_ui.lance/
+          tar -czvf release/lancedb-ollama-gamedata.tar.gz -C ollama/lancedb hytale_gamedata.lance/
+
+          # List all packages with sizes
+          echo ""
+          echo "Generated packages:"
+          ls -lh release/
 
       - name: Get release tag
         id: tag
@@ -46,6 +71,14 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
-          files: hytale-rag/data/lancedb.tar.gz
+          files: |
+            hytale-rag/data/release/lancedb-voyage-all.tar.gz
+            hytale-rag/data/release/lancedb-voyage-code.tar.gz
+            hytale-rag/data/release/lancedb-voyage-client.tar.gz
+            hytale-rag/data/release/lancedb-voyage-gamedata.tar.gz
+            hytale-rag/data/release/lancedb-ollama-all.tar.gz
+            hytale-rag/data/release/lancedb-ollama-code.tar.gz
+            hytale-rag/data/release/lancedb-ollama-client.tar.gz
+            hytale-rag/data/release/lancedb-ollama-gamedata.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

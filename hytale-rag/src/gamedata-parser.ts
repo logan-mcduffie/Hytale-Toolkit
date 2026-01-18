@@ -2,10 +2,197 @@
  * Parser for Hytale game data from Assets.zip.
  * Extracts and categorizes JSON files, building natural language representations.
  * Uses yauzl for streaming to handle large (3GB+) zip files.
+ *
+ * Supports JSONC (JSON with Comments) since Hytale's game data files often contain
+ * developer comments that provide useful context.
  */
 
 import yauzl from "yauzl";
+import * as jsonc from "jsonc-parser";
+import * as crypto from "crypto";
 import { GameDataChunk, GameDataType } from "./types.js";
+
+/**
+ * Known problematic files to silently ignore (internal worldgen/tooling files).
+ * These are malformed JSON that can't be parsed but don't contain useful modding data.
+ */
+const IGNORED_FILE_PATTERNS: RegExp[] = [
+  // BranchInfo.json - JSON Lines format (multiple concatenated objects)
+  /BranchInfo\.json$/,
+  // Entry.node.json - Unclosed block comments in goblin lair configs
+  /Mountain_GoblinLair\/Entry\.node\.json$/,
+  // Node_01.node.json - Truncated JSON in volcanic cave dungeon configs
+  /Nodes_Cave_Volcanic\/Node_01\.node\.json$/,
+  // Mine Info.json / Mines.json - Binary/invalid characters at start
+  /Mine Info\.json$/,
+  /Mineshaft\/Mines\.json$/,
+  // !Custom templates - Invalid characters mid-file
+  /!Custom\.[^/]+\.json$/,
+];
+
+/**
+ * Check if a file path matches any ignored pattern
+ */
+function isIgnoredFile(filePath: string): boolean {
+  return IGNORED_FILE_PATTERNS.some((pattern) => pattern.test(filePath));
+}
+
+/**
+ * Strip UTF-8 BOM if present
+ */
+function stripBom(content: string): string {
+  if (content.charCodeAt(0) === 0xFEFF) {
+    return content.slice(1);
+  }
+  return content;
+}
+
+/**
+ * Strip invalid characters from the start of content (binary garbage, etc.)
+ */
+function stripInvalidStart(content: string): string {
+  // Find the first { or [ which should be the start of JSON
+  const firstBrace = content.indexOf("{");
+  const firstBracket = content.indexOf("[");
+
+  let start = -1;
+  if (firstBrace >= 0 && firstBracket >= 0) {
+    start = Math.min(firstBrace, firstBracket);
+  } else if (firstBrace >= 0) {
+    start = firstBrace;
+  } else if (firstBracket >= 0) {
+    start = firstBracket;
+  }
+
+  if (start > 0) {
+    return content.slice(start);
+  }
+  return content;
+}
+
+/**
+ * Fix unclosed block comments by adding closing tag
+ */
+function fixUnclosedComments(content: string): string {
+  // Count /* and */ occurrences
+  const opens = (content.match(/\/\*/g) || []).length;
+  const closes = (content.match(/\*\//g) || []).length;
+
+  if (opens > closes) {
+    // Add missing closing tags
+    return content + " */".repeat(opens - closes);
+  }
+  return content;
+}
+
+/**
+ * Try to parse as JSON Lines (multiple JSON objects, one per line or concatenated)
+ * Returns an array of parsed objects, or null if not JSON Lines format
+ */
+function tryParseJsonLines(content: string): any[] | null {
+  // Check if content looks like it might have multiple JSON objects
+  // Look for pattern: } followed by whitespace/newline and then {
+  if (!content.includes("}\n{") && !content.includes("}\r\n{") && !content.includes("}{")) {
+    return null;
+  }
+
+  // Split on }{ patterns (with optional whitespace)
+  const parts = content.split(/\}[\s\r\n]*\{/);
+  if (parts.length <= 1) {
+    return null;
+  }
+
+  // Reconstruct each JSON object
+  const objects: any[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    let part = parts[i];
+    // Add back the braces we split on
+    if (i > 0) part = "{" + part;
+    if (i < parts.length - 1) part = part + "}";
+
+    try {
+      const errors: jsonc.ParseError[] = [];
+      const result = jsonc.parse(part, errors, {
+        allowTrailingComma: true,
+        disallowComments: false,
+      });
+      if (errors.length === 0 && result !== undefined) {
+        objects.push(result);
+      }
+    } catch {
+      // Skip invalid parts
+    }
+  }
+
+  return objects.length > 0 ? objects : null;
+}
+
+/**
+ * Parse JSONC content with multiple fallback strategies:
+ * 1. Standard JSONC parsing
+ * 2. Fix unclosed comments and retry
+ * 3. Strip invalid start characters and retry
+ * 4. Try JSON Lines format (multiple objects)
+ *
+ * Returns the parsed object (or array for JSON Lines) or throws on error
+ */
+function parseJsonc(content: string): any {
+  let cleanContent = stripBom(content);
+
+  // Strategy 1: Standard JSONC parse
+  let errors: jsonc.ParseError[] = [];
+  let result = jsonc.parse(cleanContent, errors, {
+    allowTrailingComma: true,
+    disallowComments: false,
+  });
+
+  if (errors.length === 0) {
+    return result;
+  }
+
+  const firstError = errors[0];
+  const errorCode = firstError.error;
+
+  // Strategy 2: Fix unclosed comments (errorCode 9 = UnexpectedEndOfComment)
+  if (errorCode === 9) {
+    const fixed = fixUnclosedComments(cleanContent);
+    errors = [];
+    result = jsonc.parse(fixed, errors, {
+      allowTrailingComma: true,
+      disallowComments: false,
+    });
+    if (errors.length === 0) {
+      return result;
+    }
+  }
+
+  // Strategy 3: Strip invalid start characters (errorCode 10 = InvalidSymbol)
+  if (errorCode === 10 && firstError.offset < 100) {
+    const stripped = stripInvalidStart(cleanContent);
+    if (stripped !== cleanContent) {
+      errors = [];
+      result = jsonc.parse(stripped, errors, {
+        allowTrailingComma: true,
+        disallowComments: false,
+      });
+      if (errors.length === 0) {
+        return result;
+      }
+    }
+  }
+
+  // Strategy 4: Try JSON Lines format (errorCode 5 = EndOfFileExpected)
+  if (errorCode === 5) {
+    const jsonLines = tryParseJsonLines(cleanContent);
+    if (jsonLines !== null) {
+      return jsonLines; // Return as array
+    }
+  }
+
+  // All strategies failed, throw with original error
+  const errorType = jsonc.printParseErrorCode(firstError.error);
+  throw new Error(`JSONC parse error: ${errorType} at offset ${firstError.offset}`);
+}
 
 // Path patterns for classifying game data types
 // Order matters - more specific patterns should come first
@@ -890,11 +1077,12 @@ export async function parseAssetsZip(
         }
 
         try {
-          // Read and parse JSON
+          // Read and parse JSONC (supports comments, trailing commas, BOM)
           const content = await readEntryContent(zipfile, entry);
-          const json = JSON.parse(content);
+          const json = parseJsonc(content);
 
           const name = extractName(filePath);
+          const fileHash = crypto.createHash("sha256").update(content).digest("hex");
 
           // Build chunk
           const chunk: GameDataChunk = {
@@ -902,6 +1090,7 @@ export async function parseAssetsZip(
             type,
             name,
             filePath,
+            fileHash,
             rawJson: content,
             category: json.Category,
             tags: extractTags(json),
@@ -915,7 +1104,10 @@ export async function parseAssetsZip(
 
           chunks.push(chunk);
         } catch (err) {
-          errors.push(`${filePath}: ${err instanceof Error ? err.message : String(err)}`);
+          // Silently skip known problematic files (internal worldgen/tooling)
+          if (!isIgnoredFile(filePath)) {
+            errors.push(`${filePath}: ${err instanceof Error ? err.message : String(err)}`);
+          }
         }
 
         // Continue to next entry

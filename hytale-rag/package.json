@@ -12,6 +12,7 @@
     "ingest": "tsx src/ingest.ts",
     "ingest-client": "tsx src/ingest-client.ts",
     "ingest-gamedata": "tsx src/ingest-gamedata.ts",
+    "ingest-all": "tsx src/ingest-all.ts",
     "search": "tsx src/search.ts"
   },
   "dependencies": {
@@ -21,6 +22,7 @@
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "java-parser": "^2.3.0",
+    "jsonc-parser": "^3.3.1",
     "yauzl": "^3.2.0",
     "zod": "^3.23.0"
   },

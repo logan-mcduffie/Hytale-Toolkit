@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { embedQuery } from "./embedder.js";
+import { embedQuery, type IngestEmbeddingConfig } from "./embedder.js";
 import { search, getStats, type SearchResult } from "./db.js";
 
 import { fileURLToPath } from "url";
@@ -7,7 +7,32 @@ import { dirname, join } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const DEFAULT_DB_PATH = join(__dirname, "..", "data", "lancedb");
+
+function getDefaultDbPath(provider: string): string {
+  return join(__dirname, "..", "data", provider, "lancedb");
+}
+
+function getEmbeddingConfig(): IngestEmbeddingConfig {
+  const provider = (process.env.EMBEDDING_PROVIDER || "voyage") as "voyage" | "ollama";
+
+  if (provider === "voyage") {
+    const apiKey = process.env.VOYAGE_API_KEY;
+    if (!apiKey) {
+      console.error("Error: VOYAGE_API_KEY environment variable is required for Voyage AI");
+      process.exit(1);
+    }
+    return { provider: "voyage", apiKey };
+  } else if (provider === "ollama") {
+    return {
+      provider: "ollama",
+      baseUrl: process.env.OLLAMA_BASE_URL,
+      model: process.env.OLLAMA_MODEL || "nomic-embed-text",
+    };
+  } else {
+    console.error(`Error: Unknown provider "${provider}". Use "voyage" or "ollama".`);
+    process.exit(1);
+  }
+}
 
 function formatResult(result: SearchResult, index: number, verbose: boolean): string {
   const lines: string[] = [];
@@ -49,7 +74,7 @@ async function main() {
   let verbose = false;
   let compact = false;
   let limit = 5;
-  let dbPath = DEFAULT_DB_PATH;
+  let dbPath = "";
   let query = "";
   let showStats = false;
   let classFilter = "";
@@ -78,10 +103,16 @@ async function main() {
     }
   }
 
-  const apiKey = process.env.VOYAGE_API_KEY;
-  if (!apiKey && !showStats) {
-    console.error("Error: VOYAGE_API_KEY environment variable is required");
-    process.exit(1);
+  // Get embedding config (validates API key for voyage)
+  let embeddingConfig: IngestEmbeddingConfig | undefined;
+  if (!showStats) {
+    embeddingConfig = getEmbeddingConfig();
+  }
+
+  // Set default DB path based on provider
+  if (!dbPath) {
+    const provider = process.env.EMBEDDING_PROVIDER || "voyage";
+    dbPath = getDefaultDbPath(provider);
   }
 
   // Show stats if requested
@@ -108,7 +139,7 @@ async function main() {
   // Embed the query
   let queryVector: number[];
   try {
-    queryVector = await embedQuery(query, apiKey!);
+    queryVector = await embedQuery(query, embeddingConfig!);
   } catch (e: any) {
     console.error(`Failed to embed query: ${e.message}`);
     process.exit(1);
@@ -156,7 +187,7 @@ Options:
   -v, --verbose     Show full code content in results
   -c, --compact     Output JSON format (for programmatic use)
   -n, --limit N     Number of results (default: 5)
-  -d, --db PATH     Database path (default: ./data/lancedb)
+  -d, --db PATH     Database path (default: ./data/{provider}/lancedb)
   --class NAME      Filter by class name
   --stats           Show database statistics
   -h, --help        Show this help
@@ -168,7 +199,10 @@ Examples:
   npm run search -- -c "plugin loading" > results.json
 
 Environment:
-  VOYAGE_API_KEY    Required for search queries
+  EMBEDDING_PROVIDER   Provider to use: "voyage" (default) or "ollama"
+  VOYAGE_API_KEY       Required when using Voyage AI
+  OLLAMA_BASE_URL      Ollama server URL (default: http://localhost:11434)
+  OLLAMA_MODEL         Ollama model name (default: nomic-embed-text)
 `);
 }
 

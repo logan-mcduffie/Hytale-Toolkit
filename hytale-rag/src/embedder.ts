@@ -2,10 +2,11 @@
  * Embedder - CLI helper for embedding code and game data
  *
  * Provides standalone embedding functions for the ingest scripts.
- * Uses the Voyage AI provider under the hood.
+ * Supports multiple embedding providers (Voyage AI, Ollama).
  */
 
-import { VoyageEmbeddingProvider } from "./providers/embedding/voyage.js";
+import { createEmbeddingProvider } from "./providers/embedding/factory.js";
+import type { EmbeddingProvider, EmbeddingProviderConfig } from "./providers/embedding/interface.js";
 import type { MethodChunk } from "./parser.js";
 import type { GameDataChunk, EmbeddedGameDataChunk } from "./types.js";
 import type { ClientUIChunk } from "./client-ui-parser.js";
@@ -15,6 +16,62 @@ import type { ClientUIChunk } from "./client-ui-parser.js";
  */
 export interface EmbeddedChunk extends MethodChunk {
   vector: number[];
+}
+
+/**
+ * Embedded client UI chunk with vector
+ */
+export interface EmbeddedClientUIChunk extends ClientUIChunk {
+  vector: number[];
+}
+
+/**
+ * Embedding provider configuration for ingest
+ */
+export interface IngestEmbeddingConfig {
+  provider: "voyage" | "ollama";
+  apiKey?: string;  // Required for Voyage, not needed for Ollama
+  baseUrl?: string; // Optional, for custom Ollama URL
+  model?: string;   // Optional, for custom model
+}
+
+/**
+ * Default model names by provider and purpose
+ */
+const DEFAULT_MODELS: Record<string, { code: string; text: string }> = {
+  voyage: { code: "voyage-code-3", text: "voyage-4-large" },
+  ollama: { code: "nomic-embed-text", text: "nomic-embed-text" },
+};
+
+/**
+ * Get the model name that will be used for a given config and purpose
+ */
+export function getModelName(config: IngestEmbeddingConfig, purpose: "code" | "text" = "code"): string {
+  if (config.model) {
+    return config.model;
+  }
+  return DEFAULT_MODELS[config.provider]?.[purpose] || "unknown";
+}
+
+/**
+ * Create an embedding provider from ingest config
+ */
+function createProviderFromConfig(config: IngestEmbeddingConfig): EmbeddingProvider {
+  const providerConfig: EmbeddingProviderConfig = {
+    type: config.provider,
+    apiKey: config.apiKey,
+    baseUrl: config.baseUrl,
+    // Voyage: 32 to stay under 120K token limit per batch (voyage-4-large has large files)
+    // Ollama: 10 since it's slower and runs locally
+    batchSize: config.provider === "voyage" ? 32 : 10,
+    rateLimitMs: config.provider === "voyage" ? 100 : 50,
+  };
+
+  if (config.model) {
+    providerConfig.models = { code: config.model, text: config.model };
+  }
+
+  return createEmbeddingProvider(providerConfig);
 }
 
 /**
@@ -34,19 +91,14 @@ function buildMethodEmbeddingText(chunk: MethodChunk): string {
 }
 
 /**
- * Embed code chunks using Voyage AI
+ * Embed code chunks using the specified provider
  */
 export async function embedChunks(
   chunks: MethodChunk[],
-  apiKey: string,
+  config: IngestEmbeddingConfig,
   onProgress?: (current: number, total: number) => void
 ): Promise<EmbeddedChunk[]> {
-  const provider = new VoyageEmbeddingProvider({
-    type: "voyage",
-    apiKey,
-    batchSize: 128,
-    rateLimitMs: 100,
-  });
+  const provider = createProviderFromConfig(config);
 
   // Build texts for embedding
   const texts = chunks.map(buildMethodEmbeddingText);
@@ -101,19 +153,14 @@ function buildGameDataEmbeddingText(chunk: GameDataChunk): string {
 }
 
 /**
- * Embed game data chunks using Voyage AI
+ * Embed game data chunks using the specified provider
  */
 export async function embedGameDataChunks(
   chunks: GameDataChunk[],
-  apiKey: string,
+  config: IngestEmbeddingConfig,
   onProgress?: (current: number, total: number) => void
 ): Promise<EmbeddedGameDataChunk[]> {
-  const provider = new VoyageEmbeddingProvider({
-    type: "voyage",
-    apiKey,
-    batchSize: 128,
-    rateLimitMs: 100,
-  });
+  const provider = createProviderFromConfig(config);
 
   // Build texts for embedding
   const texts = chunks.map(buildGameDataEmbeddingText);
@@ -133,26 +180,14 @@ export async function embedGameDataChunks(
 }
 
 /**
- * Embedded client UI chunk with vector
- */
-export interface EmbeddedClientUIChunk extends ClientUIChunk {
-  vector: number[];
-}
-
-/**
- * Embed client UI chunks using Voyage AI
+ * Embed client UI chunks using the specified provider
  */
 export async function embedClientUIChunks(
   chunks: ClientUIChunk[],
-  apiKey: string,
+  config: IngestEmbeddingConfig,
   onProgress?: (current: number, total: number) => void
 ): Promise<EmbeddedClientUIChunk[]> {
-  const provider = new VoyageEmbeddingProvider({
-    type: "voyage",
-    apiKey,
-    batchSize: 128,
-    rateLimitMs: 100,
-  });
+  const provider = createProviderFromConfig(config);
 
   // Use the pre-built textForEmbedding field
   const texts = chunks.map((chunk) => chunk.textForEmbedding);
@@ -172,13 +207,48 @@ export async function embedClientUIChunks(
 }
 
 /**
- * Embed a single query
+ * Embed a single query using the specified provider
  */
-export async function embedQuery(query: string, apiKey: string): Promise<number[]> {
-  const provider = new VoyageEmbeddingProvider({
-    type: "voyage",
-    apiKey,
-  });
-
+export async function embedQuery(
+  query: string,
+  config: IngestEmbeddingConfig
+): Promise<number[]> {
+  const provider = createProviderFromConfig(config);
   return provider.embedQuery(query, "code");
+}
+
+// ============ Legacy API (backwards compatibility) ============
+// These functions maintain the old signature for any existing code
+
+/**
+ * @deprecated Use embedChunks with IngestEmbeddingConfig instead
+ */
+export async function embedChunksLegacy(
+  chunks: MethodChunk[],
+  apiKey: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<EmbeddedChunk[]> {
+  return embedChunks(chunks, { provider: "voyage", apiKey }, onProgress);
+}
+
+/**
+ * @deprecated Use embedGameDataChunks with IngestEmbeddingConfig instead
+ */
+export async function embedGameDataChunksLegacy(
+  chunks: GameDataChunk[],
+  apiKey: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<EmbeddedGameDataChunk[]> {
+  return embedGameDataChunks(chunks, { provider: "voyage", apiKey }, onProgress);
+}
+
+/**
+ * @deprecated Use embedClientUIChunks with IngestEmbeddingConfig instead
+ */
+export async function embedClientUIChunksLegacy(
+  chunks: ClientUIChunk[],
+  apiKey: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<EmbeddedClientUIChunk[]> {
+  return embedClientUIChunks(chunks, { provider: "voyage", apiKey }, onProgress);
 }

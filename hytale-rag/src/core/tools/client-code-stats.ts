@@ -6,6 +6,7 @@
 
 import { emptySchema, type EmptyInput } from "../schemas.js";
 import type { ToolDefinition, ToolContext, ToolResult } from "./index.js";
+import { formatVersionNotice, type VersionInfo } from "../version-checker.js";
 
 /**
  * Client UI statistics
@@ -60,7 +61,7 @@ export const clientCodeStatsTool: ToolDefinition<EmptyInput, ClientUIStats> = {
 /**
  * Format client UI stats as markdown (for MCP/display)
  */
-export function formatClientUIStats(stats: ClientUIStats): string {
+export function formatClientUIStats(stats: ClientUIStats, versionInfo?: VersionInfo | null): string {
   const typeBreakdown = Object.entries(stats.byType)
     .map(([type, count]) => `  - ${type.toUpperCase()}: ${count.toLocaleString()}`)
     .join("\n");
@@ -73,5 +74,5 @@ export function formatClientUIStats(stats: ClientUIStats): string {
 **By Type:**
 ${typeBreakdown}
 
-The client UI database is ready for semantic search.`;
+The client UI database is ready for semantic search.${formatVersionNotice(versionInfo ?? null)}`;
 }

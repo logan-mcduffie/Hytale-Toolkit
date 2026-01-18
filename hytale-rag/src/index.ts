@@ -8,6 +8,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 import { loadConfig } from "./config/index.js";
 import { createEmbeddingProvider } from "./providers/embedding/factory.js";
 import { createVectorStore } from "./providers/vectorstore/factory.js";
@@ -21,6 +22,35 @@ import { gameDataStatsTool } from "./core/tools/gamedata-stats.js";
 import { startMCPServer } from "./servers/mcp/index.js";
 import { createRESTServer, startRESTServer } from "./servers/rest/index.js";
 import { createOpenAIServer, startOpenAIServer } from "./servers/openai/index.js";
+import { VersionChecker } from "./core/version-checker.js";
+
+/**
+ * Get current version from package.json
+ */
+function getPackageVersion(): string {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  const packagePath = path.resolve(__dirname, "../package.json");
+  try {
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf-8"));
+    return packageJson.version || "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
+}
+
+/**
+ * Get database version from .version file in data directory
+ * Falls back to package version if not found
+ */
+function getDatabaseVersion(dataPath: string): string {
+  const versionFile = path.join(dataPath, ".version");
+  try {
+    const version = fs.readFileSync(versionFile, "utf-8").trim();
+    return version || getPackageVersion();
+  } catch {
+    return getPackageVersion();
+  }
+}
 
 /**
  * Check .env file for common misconfigurations
@@ -116,7 +146,7 @@ function validateDatabase(dbPath: string): string | undefined {
 
   // Check if database directory exists
   if (!fs.existsSync(dbPath)) {
-    return `Database not found at: ${dbPath}\n\nThe LanceDB database is required for semantic search.\n\nTo fix this:\n1. Download lancedb.tar.gz from ${releaseUrl}\n2. Extract it to the data/ folder\n\nExpected structure: data/lancedb/hytale_methods.lance/`;
+    return `Database not found at: ${dbPath}\n\nThe LanceDB database is required for semantic search.\n\nTo fix this:\n1. Download lancedb-{provider}-all.tar.gz from ${releaseUrl}\n2. Extract it to the data/ folder\n\nExpected structure: data/{provider}/lancedb/hytale_methods.lance/`;
   }
 
   // Check each expected table
@@ -157,11 +187,11 @@ function validateDatabase(dbPath: string): string | undefined {
   }
 
   if (missingTables.length > 0) {
-    return `Database incomplete - missing tables:\n  ${missingTables.join("\n  ")}\n\nTo fix this:\n1. Delete the existing data/lancedb folder\n2. Download lancedb.tar.gz from ${releaseUrl}\n3. Extract it to the data/ folder`;
+    return `Database incomplete - missing tables:\n  ${missingTables.join("\n  ")}\n\nTo fix this:\n1. Delete the existing database folder\n2. Download lancedb-{provider}-all.tar.gz from ${releaseUrl}\n3. Extract it to the data/ folder`;
   }
 
   if (corruptedTables.length > 0) {
-    return `Database appears corrupted or incomplete:\n  ${corruptedTables.join("\n  ")}\n\nThis usually happens when the extraction was interrupted or incomplete.\n\nTo fix this:\n1. Delete the existing data/lancedb folder\n2. Re-download lancedb.tar.gz from ${releaseUrl}\n3. Extract it again to the data/ folder`;
+    return `Database appears corrupted or incomplete:\n  ${corruptedTables.join("\n  ")}\n\nThis usually happens when the extraction was interrupted or incomplete.\n\nTo fix this:\n1. Delete the existing database folder\n2. Re-download lancedb-{provider}-all.tar.gz from ${releaseUrl}\n3. Extract it again to the data/ folder`;
   }
 
   return undefined;
@@ -174,15 +204,19 @@ async function main() {
   // Load configuration
   const config = loadConfig();
 
-  // Check for embedding API key - warn but don't exit (for MCP mode)
+  // Check for embedding configuration - warn but don't exit (for MCP mode)
   let configError: string | undefined;
   let embedding: ReturnType<typeof createEmbeddingProvider> | undefined;
+
+  // Providers that don't require an API key
+  const noApiKeyProviders = ["ollama"];
+  const requiresApiKey = !noApiKeyProviders.includes(config.embedding.provider);
 
   // First, check for .env file misconfigurations
   const envFileError = checkEnvFile();
   if (envFileError) {
     configError = envFileError;
-  } else if (!config.embedding.apiKey) {
+  } else if (requiresApiKey && !config.embedding.apiKey) {
     const envVar =
       config.embedding.provider === "voyage"
         ? "VOYAGE_API_KEY"
@@ -191,8 +225,8 @@ async function main() {
           : `${config.embedding.provider.toUpperCase()}_API_KEY`;
 
     configError = `API key not configured. Get a free Voyage API key at https://www.voyageai.com/ and add it to your .env file:\n\n${envVar}=your-key-here\n\nThen restart Claude Code.`;
-  } else {
-    // Validate API key format
+  } else if (requiresApiKey && config.embedding.apiKey) {
+    // Validate API key format for providers that need one
     const formatError = validateApiKeyFormat(config.embedding.provider, config.embedding.apiKey);
     if (formatError) {
       configError = formatError;
@@ -206,7 +240,7 @@ async function main() {
   }
 
   // Initialize embedding provider only if no config errors
-  if (!configError && config.embedding.apiKey) {
+  if (!configError) {
     embedding = createEmbeddingProvider({
       type: config.embedding.provider,
       apiKey: config.embedding.apiKey,
@@ -255,12 +289,21 @@ async function main() {
   registry.register(clientCodeStatsTool);
   registry.register(gameDataStatsTool);
 
+  // Initialize version checker (non-blocking background check)
+  // Read version from .version file in data/{provider}/ directory
+  const dataDir = config.vectorStore.path ? path.dirname(config.vectorStore.path) : "";
+  const versionChecker = new VersionChecker({
+    currentVersion: getDatabaseVersion(dataDir),
+  });
+  versionChecker.checkVersionAsync();
+
   // Create tool context
   const context: ToolContext = {
     embedding,
     vectorStore,
     config,
     configError,
+    versionChecker,
   };
 
   const { mode, host, port } = config.server;

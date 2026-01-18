@@ -35,6 +35,7 @@ export interface GameDataChunk {
   type: GameDataType;
   name: string;                  // Human-readable name or item ID
   filePath: string;              // Path within Assets.zip
+  fileHash: string;              // SHA-256 hash for incremental indexing
 
   // Raw content
   rawJson: string;               // Original JSON content (for display)

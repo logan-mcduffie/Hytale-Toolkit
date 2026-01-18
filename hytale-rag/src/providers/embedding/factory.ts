@@ -6,6 +6,7 @@
 
 import { EmbeddingProvider, EmbeddingProviderConfig } from "./interface.js";
 import { VoyageEmbeddingProvider } from "./voyage.js";
+import { OllamaEmbeddingProvider } from "./ollama.js";
 
 /**
  * Create an embedding provider based on configuration.
@@ -18,6 +19,9 @@ export function createEmbeddingProvider(config: EmbeddingProviderConfig): Embedd
   switch (config.type) {
     case "voyage":
       return new VoyageEmbeddingProvider(config);
+
+    case "ollama":
+      return new OllamaEmbeddingProvider(config);
 
     case "openai":
       // TODO: Implement OpenAI provider
@@ -33,13 +37,6 @@ export function createEmbeddingProvider(config: EmbeddingProviderConfig): Embedd
           "Contributions welcome! See providers/embedding/cohere.ts"
       );
 
-    case "ollama":
-      // TODO: Implement Ollama provider
-      throw new Error(
-        "Ollama embedding provider not yet implemented. " +
-          "Contributions welcome! See providers/embedding/ollama.ts"
-      );
-
     default:
       throw new Error(`Unknown embedding provider: ${config.type}`);
   }
@@ -49,7 +46,7 @@ export function createEmbeddingProvider(config: EmbeddingProviderConfig): Embedd
  * Get the list of supported embedding providers
  */
 export function getSupportedEmbeddingProviders(): string[] {
-  return ["voyage"]; // Add more as they're implemented
+  return ["voyage", "ollama"];
 }
 
 /**

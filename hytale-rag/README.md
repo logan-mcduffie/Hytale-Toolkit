@@ -61,7 +61,7 @@ Options:
 Voyage AI charges per token for embeddings:
 - The database is pre-built, so you only pay for **query embeddings**
 - Each search query costs ~$0.0001 (a fraction of a cent)
-- voyage-code-2 has 200M free tokens, then $0.12/M tokens
+- voyage-code-3 and voyage-4-large: generous free tier, then ~$0.05-0.12/M tokens
 
 ## Re-indexing (Optional)
 
