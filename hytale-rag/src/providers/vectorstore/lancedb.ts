@@ -141,15 +141,19 @@ export class LanceDBVectorStore implements VectorStore {
     const db = await this.getConnection();
     const table = await db.openTable(tableName);
 
-    let query = table.vectorSearch(queryVector).limit(options.limit);
+    // Use query().nearestTo() pattern for better filter support
+    let query = table.query().nearestTo(queryVector);
 
-    // Apply filter if provided
+    // Apply filter if provided - use prefilter (where) for accurate filtering
     if (options.filter) {
       const filterStr = this.buildFilterString(options.filter);
       if (filterStr) {
+        // Use where() (prefilter) - filters before vector search for accurate results
         query = query.where(filterStr);
       }
     }
+
+    query = query.limit(options.limit);
 
     const results = await query.toArray();
 
@@ -282,16 +286,21 @@ export class LanceDBVectorStore implements VectorStore {
 
   /**
    * Build a SQL WHERE filter string from key-value pairs
+   * Column names are wrapped in backticks to preserve case sensitivity
+   * (LanceDB/DataFusion normalizes unquoted identifiers to lowercase;
+   * backticks are required for camelCase column names)
    */
   private buildFilterString(filter: Record<string, string | number | boolean>): string {
     const conditions = Object.entries(filter)
       .map(([key, value]) => {
+        // Use backticks for case-sensitive column names (LanceDB-specific)
+        const quotedKey = '`' + key + '`';
         if (typeof value === "string") {
           // Escape single quotes in strings
           const escaped = value.replace(/'/g, "''");
-          return `${key} = '${escaped}'`;
+          return `${quotedKey} = '${escaped}'`;
         }
-        return `${key} = ${value}`;
+        return `${quotedKey} = ${value}`;
       });
 
     return conditions.join(" AND ");

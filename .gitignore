@@ -14,6 +14,10 @@ tmpclaude-*
 # Node
 node_modules/
 
+# Python
+__pycache__/
+*.pyc
+
 # Build outputs
 target/
 dist/

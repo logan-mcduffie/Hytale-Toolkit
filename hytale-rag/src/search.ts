@@ -146,9 +146,10 @@ async function main() {
   }
 
   // Build filter if class specified
+  // Use backticks for column name to preserve case sensitivity (LanceDB requires backticks for camelCase)
   let filter: string | undefined;
   if (classFilter) {
-    filter = `className = '${classFilter}'`;
+    filter = `\`className\` = '${classFilter}'`;
   }
 
   // Search

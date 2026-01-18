@@ -43,11 +43,48 @@ Start building immediately with a pre-configured Maven project. Or use the `/ini
 ### 💻 Full Source Access
 When the docs aren't enough, browse the actual decompiled implementation to understand exactly how things work.
 
-## Get Started
+## Quick Start
 
-1. **[Setup Guide](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/1.-Setup)** - Generate decompiled source and Javadocs
-2. **[Hytale RAG Database](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/2.-Hytale-RAG-Database)** - Set up AI-powered code search
-3. **[Making Your First Mod](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/3.-Making-Your-First-Mod)** - Create your first plugin
+### Prerequisites
+
+- **Python 3.10+** - [Download](https://www.python.org/downloads/)
+- **Node.js 18+** - [Download](https://nodejs.org/)
+- **Java 24+** - [Download](https://adoptium.net/)
+- **Hytale Alpha** - Installed on your system
+
+### One-Command Setup
+
+```bash
+cd hytale-rag
+python setup.py
+```
+
+The interactive wizard will:
+
+1. **Locate your Hytale installation** - Point it to your `latest` folder
+2. **Decompile the server** - Extract readable Java source code
+3. **Generate Javadocs** (optional) - Browsable HTML documentation
+4. **Set up semantic search** - Choose Voyage AI (cloud) or Ollama (local)
+5. **Download the RAG database** - Pre-indexed for instant search
+6. **Configure your AI tools** - Claude Code, VS Code, Cursor, Windsurf, or Codex
+
+Once complete, restart your AI assistant and ask it questions like:
+- *"How does player movement work in Hytale?"*
+- *"Find methods related to inventory management"*
+- *"What NPCs drop iron ore?"*
+
+### Manual Search (No AI Required)
+
+```bash
+cd hytale-rag
+npx tsx src/search.ts "player inventory"
+npx tsx src/search.ts --stats
+```
+
+## Learn More
+
+- **[Making Your First Mod](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki/1.-Making-Your-First-Mod)** - Create your first plugin with the starter template
+
 <div align="center">
 <sub>This toolkit is for educational and modding purposes. Hytale is a trademark of Hypixel Studios.</sub>
 </div>
