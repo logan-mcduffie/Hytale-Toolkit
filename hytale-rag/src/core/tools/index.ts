@@ -6,6 +6,7 @@
  */
 
 import { z, ZodSchema } from "zod";
+import { getLogger } from "../../utils/logger.js";
 import type { EmbeddingProvider } from "../../providers/embedding/interface.js";
 import type { VectorStore } from "../../providers/vectorstore/interface.js";
 import type { AppConfig } from "../../config/schema.js";
@@ -108,9 +109,11 @@ export class ToolRegistry {
     input: unknown,
     context: ToolContext
   ): Promise<ToolResult<TOutput>> {
+    const logger = getLogger();
     const tool = this.tools.get(name);
 
     if (!tool) {
+      logger.warn(`Tool '${name}' not found in registry`);
       return {
         success: false,
         error: `Tool '${name}' not found`,
@@ -118,12 +121,15 @@ export class ToolRegistry {
     }
 
     const startTime = Date.now();
+    logger.debug(`Executing tool '${name}'`);
 
     try {
       // Validate input
+      logger.debug(`Validating input for tool '${name}'`);
       const validatedInput = tool.inputSchema.parse(input);
 
       // Execute handler
+      logger.debug(`Running handler for tool '${name}'`);
       const result = await tool.handler(validatedInput, context);
 
       // Add timing metadata
@@ -133,21 +139,26 @@ export class ToolRegistry {
         result.metadata.executionTimeMs = Date.now() - startTime;
       }
 
+      logger.debug(`Tool '${name}' handler completed (success: ${result.success}, time: ${result.metadata.executionTimeMs}ms)`);
       return result as ToolResult<TOutput>;
     } catch (error) {
       const executionTimeMs = Date.now() - startTime;
 
       if (error instanceof z.ZodError) {
+        const validationError = `Validation error: ${error.errors.map((e) => e.message).join(", ")}`;
+        logger.error(`Tool '${name}' validation failed: ${validationError}`);
         return {
           success: false,
-          error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
+          error: validationError,
           metadata: { executionTimeMs },
         };
       }
 
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Tool '${name}' execution failed: ${errorMessage}`, error instanceof Error ? error : undefined);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
         metadata: { executionTimeMs },
       };
     }

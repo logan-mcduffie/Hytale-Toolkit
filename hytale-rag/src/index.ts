@@ -11,6 +11,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 import { loadConfig } from "./config/index.js";
+import { setupLogger, getLogger } from "./utils/logger.js";
 import { createEmbeddingProvider } from "./providers/embedding/factory.js";
 import { createVectorStore } from "./providers/vectorstore/factory.js";
 import { ToolRegistry, type ToolContext } from "./core/tools/index.js";
@@ -202,8 +203,17 @@ function validateDatabase(dbPath: string): string | undefined {
  * Main entry point
  */
 async function main() {
+  // Initialize logging first (before anything else can fail)
+  const { logger, logFile } = setupLogger("hytale-rag");
+
   // Load configuration
   const config = loadConfig();
+  logger.section("Configuration");
+  logger.info(`Server mode: ${config.server.mode}`);
+  logger.info(`Embedding provider: ${config.embedding.provider}`);
+  logger.info(`Vector store: ${config.vectorStore.provider}`);
+  logger.info(`Database path: ${config.vectorStore.path || "not set"}`);
+  logger.debug(`Full config: ${JSON.stringify(config, null, 2)}`);
 
   // Check for embedding configuration - warn but don't exit (for MCP mode)
   let configError: string | undefined;
@@ -214,9 +224,11 @@ async function main() {
   const requiresApiKey = !noApiKeyProviders.includes(config.embedding.provider);
 
   // First, check for .env file misconfigurations
+  logger.section("Validation");
   const envFileError = checkEnvFile();
   if (envFileError) {
     configError = envFileError;
+    logger.error(`Environment file error: ${envFileError}`);
   } else if (requiresApiKey && !config.embedding.apiKey) {
     const envVar =
       config.embedding.provider === "voyage"
@@ -226,11 +238,15 @@ async function main() {
           : `${config.embedding.provider.toUpperCase()}_API_KEY`;
 
     configError = `API key not configured. Get a free Voyage API key at https://www.voyageai.com/ and add it to your .env file:\n\n${envVar}=your-key-here\n\nThen restart Claude Code.`;
+    logger.error(`API key not configured for provider: ${config.embedding.provider}`);
   } else if (requiresApiKey && config.embedding.apiKey) {
     // Validate API key format for providers that need one
     const formatError = validateApiKeyFormat(config.embedding.provider, config.embedding.apiKey);
     if (formatError) {
       configError = formatError;
+      logger.error(`API key format invalid: ${formatError}`);
+    } else {
+      logger.info(`API key validated for provider: ${config.embedding.provider}`);
     }
   }
 
@@ -242,6 +258,8 @@ async function main() {
 
   // Initialize embedding provider only if no config errors
   if (!configError) {
+    logger.section("Initialization");
+    logger.info(`Creating embedding provider: ${config.embedding.provider}`);
     embedding = createEmbeddingProvider({
       type: config.embedding.provider,
       apiKey: config.embedding.apiKey,
@@ -250,23 +268,29 @@ async function main() {
       batchSize: config.embedding.batchSize,
       rateLimitMs: config.embedding.rateLimitMs,
     });
+    logger.info("Embedding provider created successfully");
   }
 
   // Validate database files before trying to connect
   if (!configError && config.vectorStore.path) {
+    logger.debug(`Validating database at: ${config.vectorStore.path}`);
     const dbError = validateDatabase(config.vectorStore.path);
     if (dbError) {
       configError = dbError;
+      logger.error(`Database validation failed: ${dbError}`);
 
       // For non-MCP modes, exit immediately
       if (config.server.mode !== "mcp") {
         console.error(`Error: ${dbError}`);
         process.exit(1);
       }
+    } else {
+      logger.info("Database validation passed");
     }
   }
 
   // Initialize vector store
+  logger.info(`Creating vector store: ${config.vectorStore.provider}`);
   const vectorStore = createVectorStore({
     type: config.vectorStore.provider,
     path: config.vectorStore.path,
@@ -278,10 +302,13 @@ async function main() {
 
   // Connect to vector store (skip if database validation failed)
   if (!configError) {
+    logger.info("Connecting to vector store...");
     await vectorStore.connect();
+    logger.info("Vector store connected successfully");
   }
 
   // Create tool registry and register tools
+  logger.section("Tools");
   const registry = new ToolRegistry();
   registry.register(searchCodeTool);
   registry.register(searchClientCodeTool);
@@ -289,6 +316,7 @@ async function main() {
   registry.register(codeStatsTool);
   registry.register(clientCodeStatsTool);
   registry.register(gameDataStatsTool);
+  logger.info(`Registered ${registry.getAll().length} tools: ${registry.getAll().map(t => t.name).join(", ")}`);
 
   // Initialize version checker (non-blocking background check)
   // Read version from .version file in data/{provider}/ directory
@@ -310,32 +338,43 @@ async function main() {
   const { mode, host, port } = config.server;
 
   // Start servers based on mode
+  logger.section("Server Startup");
   if (mode === "mcp") {
     // MCP-only mode (for Claude)
+    logger.info("Starting MCP server (stdio transport)");
     await startMCPServer(registry, context);
+    logger.info("MCP server started successfully");
   } else if (mode === "rest") {
     // REST API only
+    logger.info(`Starting REST API server on ${host}:${port}`);
     const restApp = createRESTServer(registry, context, config);
     startRESTServer(restApp, config);
+    logger.info("REST API server started");
   } else if (mode === "openai") {
     // OpenAI-compatible only
+    logger.info(`Starting OpenAI-compatible server on ${host}:${port}`);
     const openaiApp = createOpenAIServer(registry, context, config);
     startOpenAIServer(openaiApp, host, port);
+    logger.info("OpenAI-compatible server started");
   } else if (mode === "all") {
     // Start all servers
     // Note: MCP uses stdio, so it runs in the background
     // REST and OpenAI use HTTP on different ports
+    logger.info("Starting all servers (multi-server mode)");
 
     console.log("Starting Hytale RAG in multi-server mode...\n");
 
     // REST API on configured port
+    logger.info(`Starting REST API server on ${host}:${port}`);
     const restApp = createRESTServer(registry, context, config);
     startRESTServer(restApp, config);
 
     // OpenAI-compatible on port + 1
+    logger.info(`Starting OpenAI-compatible server on ${host}:${port + 1}`);
     const openaiApp = createOpenAIServer(registry, context, config);
     startOpenAIServer(openaiApp, host, port + 1);
 
+    logger.info("All servers started successfully");
     console.log("\nTo use with Claude, run: npx tsx src/index.ts");
     console.log("(MCP mode is the default when no HTTP servers are needed)\n");
   }
@@ -343,6 +382,9 @@ async function main() {
 
 // Run main
 main().catch((error) => {
+  // Try to log the fatal error (logger may not be initialized)
+  const logger = getLogger();
+  logger.error("Fatal error during startup", error instanceof Error ? error : new Error(String(error)));
   console.error("Fatal error:", error);
   process.exit(1);
 });

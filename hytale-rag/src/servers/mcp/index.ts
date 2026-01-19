@@ -7,6 +7,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { ToolRegistry, ToolContext } from "../../core/tools/index.js";
+import { getLogger } from "../../utils/logger.js";
 import { formatCodeResults } from "../../core/tools/search-code.js";
 import { formatClientUIResults } from "../../core/tools/search-client-code.js";
 import { formatGameDataResults } from "../../core/tools/search-gamedata.js";
@@ -49,16 +50,22 @@ export async function startMCPServer(
   registry: ToolRegistry,
   context: ToolContext
 ): Promise<void> {
+  const logger = getLogger();
+
   // Get version from version checker or fall back to default
   const version = context.versionChecker?.getCachedVersion()?.currentVersion ?? "2.0.0";
+  logger.info(`Initializing MCP server (version: ${version})`);
 
   const server = new McpServer({
     name: "hytale-rag",
     version,
   });
+  logger.debug("McpServer instance created");
 
   // Register all tools from the registry using the new registerTool API
+  logger.info(`Registering ${registry.getAll().length} tools with MCP server`);
   for (const tool of registry.getAll()) {
+    logger.debug(`Registering tool: ${tool.name}`);
     server.registerTool(
       tool.name,
       {
@@ -66,14 +73,22 @@ export async function startMCPServer(
         inputSchema: tool.inputSchema,
       },
       async (input: unknown) => {
+        const startTime = Date.now();
+        logger.info(`Tool '${tool.name}' called`);
+        logger.debug(`Tool '${tool.name}' input: ${JSON.stringify(input)}`);
+
         const result = await registry.execute(tool.name, input, context);
+        const executionTimeMs = Date.now() - startTime;
 
         if (!result.success) {
+          logger.error(`Tool '${tool.name}' failed after ${executionTimeMs}ms: ${result.error}`);
           return {
             content: [{ type: "text" as const, text: `Error: ${result.error}` }],
             isError: true,
           };
         }
+
+        logger.info(`Tool '${tool.name}' completed successfully in ${executionTimeMs}ms`);
 
         // Get cached version info for stats tools (non-blocking)
         const versionInfo = context.versionChecker?.getCachedVersion() ?? null;
@@ -86,6 +101,9 @@ export async function startMCPServer(
   }
 
   // Connect via stdio transport
+  logger.info("Creating stdio transport");
   const transport = new StdioServerTransport();
+  logger.info("Connecting MCP server to transport...");
   await server.connect(transport);
+  logger.info("MCP server connected and ready");
 }
