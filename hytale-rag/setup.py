@@ -674,7 +674,7 @@ def install_ollama() -> bool:
             print("\n  ERROR: Administrator privileges required to install Ollama.")
             print("  Please restart this script as Administrator.")
             return False
-        print("  Installing Ollama via winget...")
+        print("  Installing Ollama via winget...", flush=True)
         exit_code, output = run_command([
             "winget", "install", "-e", "--id", "Ollama.Ollama",
             "--accept-source-agreements", "--accept-package-agreements"
@@ -687,14 +687,14 @@ def install_ollama() -> bool:
         if not command_exists("brew"):
             print("  Homebrew is required. Install from: https://brew.sh")
             return False
-        print("  Installing Ollama via Homebrew...")
+        print("  Installing Ollama via Homebrew...", flush=True)
         exit_code, output = run_command(["brew", "install", "ollama"], shell=False)
         if exit_code != 0:
             print(f"  Installation failed. Please install manually: https://ollama.com/download")
             return False
 
     elif system == "Linux":
-        print("  Installing Ollama...")
+        print("  Installing Ollama...", flush=True)
         exit_code, output = run_command(
             ["bash", "-c", "curl -fsSL https://ollama.com/install.sh | sh"],
             shell=False
@@ -740,7 +740,7 @@ def start_ollama() -> bool:
 
 def pull_ollama_model(model: str = OLLAMA_MODEL) -> bool:
     """Pull the required embedding model with progress."""
-    print(f"  Downloading {model} model...")
+    print(f"  Downloading {model} model...", flush=True)
     print()
 
     try:
@@ -766,7 +766,7 @@ def pull_ollama_model(model: str = OLLAMA_MODEL) -> bool:
 
 def setup_ollama() -> bool:
     """Full Ollama setup: install, start, pull model."""
-    print("  Checking Ollama...")
+    print("  Checking Ollama...", flush=True)
 
     if not check_ollama_installed():
         print("  Ollama is not installed.")
@@ -779,7 +779,7 @@ def setup_ollama() -> bool:
     print("  Ollama is installed.")
 
     if not check_ollama_running():
-        print("  Starting Ollama server...")
+        print("  Starting Ollama server...", flush=True)
         if not start_ollama():
             print("  Failed to start. Please run 'ollama serve' manually.")
             return False
@@ -1406,7 +1406,7 @@ def setup_claude_code(script_dir: Path) -> bool:
 
     if config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding='utf-8'))
         except json.JSONDecodeError:
             config = {}
     else:
@@ -1416,7 +1416,7 @@ def setup_claude_code(script_dir: Path) -> bool:
         config["mcpServers"] = {}
 
     config["mcpServers"]["hytale-rag"] = mcp_config
-    config_path.write_text(json.dumps(config, indent=2))
+    config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
 
     print(f"    Added 'hytale-rag' to {config_path}")
     return True
@@ -1433,7 +1433,7 @@ def setup_vscode(script_dir: Path) -> bool:
 
     if config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding='utf-8'))
         except json.JSONDecodeError:
             config = {}
     else:
@@ -1443,7 +1443,7 @@ def setup_vscode(script_dir: Path) -> bool:
         config["servers"] = {}
 
     config["servers"]["hytale-rag"] = mcp_config
-    config_path.write_text(json.dumps(config, indent=2))
+    config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
 
     print(f"    Added 'hytale-rag' to {config_path}")
     print()
@@ -1477,7 +1477,7 @@ def setup_cursor(script_dir: Path) -> bool:
         }
     }
     cursor_snippet_path = script_dir / "cursor-mcp-config.json"
-    cursor_snippet_path.write_text(json.dumps(cursor_config, indent=2))
+    cursor_snippet_path.write_text(json.dumps(cursor_config, indent=2), encoding='utf-8')
     print(f"    Config snippet saved to: {cursor_snippet_path}")
     print("    (You can copy this into Cursor's MCP settings)")
     return True
@@ -1493,7 +1493,7 @@ def setup_windsurf(script_dir: Path) -> bool:
 
     if config_path.exists():
         try:
-            config = json.loads(config_path.read_text())
+            config = json.loads(config_path.read_text(encoding='utf-8'))
         except json.JSONDecodeError:
             config = {}
     else:
@@ -1503,7 +1503,7 @@ def setup_windsurf(script_dir: Path) -> bool:
         config["mcpServers"] = {}
 
     config["mcpServers"]["hytale-rag"] = mcp_config
-    config_path.write_text(json.dumps(config, indent=2))
+    config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
 
     print(f"    Added 'hytale-rag' to {config_path}")
     return True
@@ -1520,7 +1520,7 @@ def setup_codex(script_dir: Path) -> bool:
     # Read existing config or create new
     existing_content = ""
     if config_path.exists():
-        existing_content = config_path.read_text()
+        existing_content = config_path.read_text(encoding='utf-8')
 
     # Check if hytale-rag already configured
     if "[mcp_servers.hytale-rag]" in existing_content:
@@ -1544,7 +1544,7 @@ args = ["{start_script}"]
 '''
 
     # Append to config
-    with open(config_path, "a") as f:
+    with open(config_path, "a", encoding='utf-8') as f:
         f.write(toml_entry)
 
     print(f"    Added 'hytale-rag' to {config_path}")
@@ -1610,7 +1610,7 @@ def setup_mcp_clients(selected_clients: list[str], script_dir: Path) -> dict[str
 
     for client_id in selected_clients:
         client_info = MCP_CLIENTS[client_id]
-        print(f"  Setting up {client_info['name']}...")
+        print(f"  Setting up {client_info['name']}...", flush=True)
 
         setup_fn = setup_functions.get(client_id)
         if setup_fn:
@@ -1799,7 +1799,7 @@ def main():
     )
 
     if needs_download:
-        print("  Downloading pre-built database...")
+        print("  Downloading pre-built database...", flush=True)
         print()
 
         if lancedb_dir.exists():
@@ -1823,7 +1823,7 @@ def main():
                 sys.exit(1)
 
             # Also run a quick functional test
-            print("  Running functional test...")
+            print("  Running functional test...", flush=True)
             exit_code, output = run_command(
                 ["npx", "tsx", "src/search.ts", "--stats"],
                 cwd=SCRIPT_DIR
@@ -1850,7 +1850,7 @@ def main():
 
     # Install npm dependencies
     print()
-    print("  Installing npm dependencies...")
+    print("  Installing npm dependencies...", flush=True)
     exit_code, output = run_command(["npm", "install"], cwd=SCRIPT_DIR)
     if exit_code != 0:
         print(f"  WARNING: npm install had issues: {output[:200]}")
