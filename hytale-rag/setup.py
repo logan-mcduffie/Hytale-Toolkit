@@ -1650,6 +1650,8 @@ def setup_vscode(script_dir: Path) -> bool:
     config_path = vscode_dir / "mcp.json"
 
     mcp_config = get_mcp_command_simple(script_dir)
+    # VS Code's mcp.json format doesn't use "type" field - remove it
+    mcp_config.pop("type", None)
 
     if config_path.exists():
         try:
