@@ -210,7 +210,12 @@ def load_env() -> dict[str, str]:
                 line = line.strip()
                 if line and not line.startswith("#") and "=" in line:
                     key, value = line.split("=", 1)
-                    env[key.strip()] = value.strip()
+                    value = value.strip()
+                    # Strip surrounding quotes and unescape
+                    if (value.startswith('"') and value.endswith('"')) or \
+                       (value.startswith("'") and value.endswith("'")):
+                        value = value[1:-1].replace('\\"', '"')
+                    env[key.strip()] = value
     return env
 
 
@@ -218,7 +223,13 @@ def save_env(env: dict[str, str]):
     """Save .env file."""
     with open(ENV_FILE, "w") as f:
         for key, value in env.items():
-            f.write(f"{key}={value}\n")
+            # Quote values that contain spaces or special characters
+            if ' ' in value or '"' in value or "'" in value:
+                # Escape any existing double quotes and wrap in double quotes
+                escaped = value.replace('"', '\\"')
+                f.write(f'{key}="{escaped}"\n')
+            else:
+                f.write(f"{key}={value}\n")
 
 
 # ============================================================================
