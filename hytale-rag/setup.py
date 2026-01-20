@@ -22,6 +22,14 @@ import time
 import urllib.request
 from pathlib import Path
 
+# Add parent directory to path for shared utilities
+sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+from logger import setup_logging, log_command, log_exception, log_section
+
+# Global logger (initialized in main)
+log = None
+log_file = None
+
 # ============================================================================
 #  Configuration
 # ============================================================================
@@ -149,6 +157,7 @@ def run_command(cmd: list[str], cwd: Path = None, env: dict = None, shell: bool 
     """Run a command and return exit code and output."""
     try:
         use_shell = shell if shell is not None else (platform.system() == "Windows")
+        cmd_for_log = cmd
         if use_shell and isinstance(cmd, list):
             cmd = " ".join(cmd)
 
@@ -159,8 +168,17 @@ def run_command(cmd: list[str], cwd: Path = None, env: dict = None, shell: bool 
         result = subprocess.run(
             cmd, cwd=cwd, capture_output=True, encoding='utf-8', errors='replace', shell=use_shell, env=merged_env
         )
-        return result.returncode, result.stdout + result.stderr
+        output = result.stdout + result.stderr
+
+        # Log the command execution
+        if log:
+            log_command(log, cmd_for_log, result.returncode, output, cwd)
+
+        return result.returncode, output
     except Exception as e:
+        if log:
+            log.error(f"Command failed with exception: {e}")
+            log_exception(log, "run_command")
         return 1, str(e)
 
 
@@ -217,15 +235,31 @@ def validate_hytale_installation(folder: str) -> tuple[bool, list[str]]:
     """
     folder_path = Path(folder)
 
+    if log:
+        log.debug(f"Validating Hytale installation at: {folder}")
+
     if not folder_path.exists():
+        if log:
+            log.warning(f"Folder does not exist: {folder}")
         return False, ["Folder does not exist"]
 
     missing = []
     for item in REQUIRED_CONTENTS:
-        if not (folder_path / item).exists():
+        item_path = folder_path / item
+        exists = item_path.exists()
+        if log:
+            log.debug(f"  Checking {item}: {'found' if exists else 'MISSING'}")
+        if not exists:
             missing.append(item)
 
-    return len(missing) == 0, missing
+    is_valid = len(missing) == 0
+    if log:
+        if is_valid:
+            log.info(f"Valid Hytale installation found at: {folder}")
+        else:
+            log.warning(f"Invalid installation - missing: {missing}")
+
+    return is_valid, missing
 
 
 def get_hytale_install_path(env: dict[str, str]) -> str | None:
@@ -303,13 +337,21 @@ def get_hytale_install_path(env: dict[str, str]) -> str | None:
 
 def decompile_server(install_path: str, env: dict[str, str], ram_gb: int = 8) -> bool:
     """Decompile HytaleServer.jar using Vineflower."""
+    if log:
+        log_section(log, "Decompilation")
+        log.info(f"Starting decompilation with {ram_gb}GB RAM")
+
     server_jar = Path(install_path) / "Server" / "HytaleServer.jar"
 
     if not server_jar.exists():
+        if log:
+            log.error(f"HytaleServer.jar not found at {server_jar}")
         print(f"  ERROR: HytaleServer.jar not found at {server_jar}")
         return False
 
     if not VINEFLOWER_JAR.exists():
+        if log:
+            log.error(f"Vineflower not found at {VINEFLOWER_JAR}")
         print(f"  ERROR: Vineflower not found at {VINEFLOWER_JAR}")
         return False
 
@@ -384,18 +426,28 @@ def decompile_server(install_path: str, env: dict[str, str], ram_gb: int = 8) ->
         print()  # New line after progress
 
         if process.returncode == 0:
+            if log:
+                log.info(f"Decompilation completed successfully ({class_count} classes)")
             print("  Decompilation complete!")
             # Fix decompilation artifacts for javadoc compatibility
             fix_decompiled_files()
             return True
         else:
+            if log:
+                log.error(f"Decompilation failed with exit code {process.returncode}")
             print(f"  Decompilation failed with exit code {process.returncode}")
             return False
 
     except FileNotFoundError:
+        if log:
+            log.error("Java not found in PATH")
+            log_exception(log, "decompile_server")
         print("\n  ERROR: Java not found. Please install Java and try again.")
         return False
     except Exception as e:
+        if log:
+            log.error(f"Decompilation exception: {e}")
+            log_exception(log, "decompile_server")
         print(f"\n  ERROR: {e}")
         return False
 
@@ -1127,6 +1179,11 @@ def download_database(dest_dir: Path, provider: str) -> bool:
     """Download and extract the LanceDB database from GitHub releases."""
     import ssl
 
+    if log:
+        log_section(log, "Database Download")
+        log.info(f"Downloading database for provider: {provider}")
+        log.info(f"Destination: {dest_dir}")
+
     dest_dir.mkdir(parents=True, exist_ok=True)
     asset_name = f"lancedb-{provider}-all.tar.gz"
     tarball_path = dest_dir / asset_name
@@ -1134,6 +1191,8 @@ def download_database(dest_dir: Path, provider: str) -> bool:
     api_url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
     print("  Fetching latest release info...")
+    if log:
+        log.debug(f"API URL: {api_url}")
     try:
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
@@ -1150,13 +1209,22 @@ def download_database(dest_dir: Path, provider: str) -> bool:
                 break
 
         if not download_url:
+            if log:
+                log.error(f"Asset {asset_name} not found in release")
+                log.error(f"Available assets: {[a['name'] for a in release_info.get('assets', [])]}")
             print(f"  ERROR: Could not find {asset_name} in latest release.")
             print(f"  Available assets:")
             for asset in release_info.get("assets", []):
                 print(f"    - {asset['name']}")
             return False
 
+        if log:
+            log.info(f"Found download URL: {download_url}")
+
     except Exception as e:
+        if log:
+            log.error(f"Failed to fetch release info: {e}")
+            log_exception(log, "download_database")
         print(f"  ERROR: Failed to fetch release info: {e}")
         return False
 
@@ -1175,8 +1243,13 @@ def download_database(dest_dir: Path, provider: str) -> bool:
 
         urllib.request.urlretrieve(download_url, tarball_path, reporthook=show_progress)
         print()
+        if log:
+            log.info(f"Download complete: {tarball_path}")
 
     except Exception as e:
+        if log:
+            log.error(f"Download failed: {e}")
+            log_exception(log, "download_database")
         print(f"\n  ERROR: Download failed: {e}")
         return False
 
@@ -1185,8 +1258,13 @@ def download_database(dest_dir: Path, provider: str) -> bool:
         with tarfile.open(tarball_path, "r:gz") as tar:
             tar.extractall(path=dest_dir)
         tarball_path.unlink()
+        if log:
+            log.info("Extraction complete")
         print("  Extraction complete!")
     except Exception as e:
+        if log:
+            log.error(f"Extraction failed: {e}")
+            log_exception(log, "download_database")
         print(f"  ERROR: Extraction failed: {e}")
         return False
 
@@ -1195,6 +1273,8 @@ def download_database(dest_dir: Path, provider: str) -> bool:
     version_file = dest_dir / ".version"
     try:
         version_file.write_text(version_tag)
+        if log:
+            log.info(f"Database version: {version_tag}")
     except Exception:
         pass  # Non-critical if this fails
 
@@ -1633,6 +1713,15 @@ def setup_mcp_clients(selected_clients: list[str], script_dir: Path) -> dict[str
 # ============================================================================
 
 def main():
+    global log, log_file
+
+    # Initialize logging
+    log, log_file = setup_logging("setup", REPO_ROOT)
+    log_section(log, "Initialization")
+    log.info(f"SCRIPT_DIR: {SCRIPT_DIR}")
+    log.info(f"REPO_ROOT: {REPO_ROOT}")
+    log.info(f"ENV_FILE: {ENV_FILE}")
+
     clear_screen()
 
     print()
@@ -1941,10 +2030,30 @@ def main():
     print("  ----------------------------------------------------------")
     print()
 
+    # Show log file location
+    if log_file:
+        print(f"  Log file: {log_file}")
+        print("  (Share this file if you need help troubleshooting)")
+        print()
+        log.info("=== Setup completed successfully ===")
+
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
+        if log:
+            log.warning("Setup cancelled by user (Ctrl+C)")
         print("\n\n  Setup cancelled by user.")
+        if log_file:
+            print(f"  Log file: {log_file}")
+        sys.exit(1)
+    except Exception as e:
+        if log:
+            log.error(f"Unhandled exception: {e}")
+            log_exception(log, "main")
+        print(f"\n\n  ERROR: An unexpected error occurred: {e}")
+        if log_file:
+            print(f"  Log file: {log_file}")
+            print("  Please share this log file when reporting the issue.")
         sys.exit(1)

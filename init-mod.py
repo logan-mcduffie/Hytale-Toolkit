@@ -20,6 +20,14 @@ import sys
 import urllib.request
 from pathlib import Path
 
+# Add tools directory to path for shared utilities
+sys.path.insert(0, str(Path(__file__).parent / "tools"))
+from logger import setup_logging, log_command, log_exception, log_section
+
+# Global logger (initialized in main)
+log = None
+log_file = None
+
 # ============================================================================
 #  Configuration
 # ============================================================================
@@ -231,6 +239,7 @@ def run_command(cmd: list[str], cwd: Path = None, env: dict = None, shell: bool 
     """Run a command and return exit code and output."""
     try:
         use_shell = shell if shell is not None else (platform.system() == "Windows")
+        cmd_for_log = cmd
         if use_shell and isinstance(cmd, list):
             cmd = " ".join(cmd)
 
@@ -241,8 +250,17 @@ def run_command(cmd: list[str], cwd: Path = None, env: dict = None, shell: bool 
         result = subprocess.run(
             cmd, cwd=cwd, capture_output=True, text=True, shell=use_shell, env=merged_env
         )
-        return result.returncode, result.stdout + result.stderr
+        output = result.stdout + result.stderr
+
+        # Log the command execution
+        if log:
+            log_command(log, cmd_for_log, result.returncode, output, cwd)
+
+        return result.returncode, output
     except Exception as e:
+        if log:
+            log.error(f"Command failed with exception: {e}")
+            log_exception(log, "run_command")
         return 1, str(e)
 
 
@@ -1121,6 +1139,15 @@ zipStorePath=wrapper/dists
 
 def create_project_structure(mod_config: dict, project_path: Path, hytale_path: str, toolkit_path: str, ides: list[str], gitignore_ide: bool = True, jdk24_path: str = None) -> bool:
     """Create the complete mod project structure."""
+    if log:
+        log_section(log, "Project Creation")
+        log.info(f"Creating project at: {project_path}")
+        log.info(f"Mod config: {json.dumps(mod_config, indent=2)}")
+        log.info(f"Hytale path: {hytale_path}")
+        log.info(f"Toolkit path: {toolkit_path}")
+        log.info(f"IDEs: {ides}")
+        log.info(f"JDK 24 path: {jdk24_path}")
+
     print(f"\n  Creating project at: {project_path}")
     print()
 
@@ -1193,9 +1220,14 @@ def create_project_structure(mod_config: dict, project_path: Path, hytale_path: 
         if "vscode" in ides:
             generate_vscode_config(mod_config, project_path, toolkit_path, hytale_path, jdk24_path)
 
+        if log:
+            log.info("Project structure created successfully")
         return True
 
     except Exception as e:
+        if log:
+            log.error(f"Failed to create project: {e}")
+            log_exception(log, "create_project_structure")
         print(f"\n  ERROR: Failed to create project: {e}")
         return False
 
@@ -1303,6 +1335,14 @@ def decompile_server(install_path: str, ram_gb: int = 8) -> bool:
 # ============================================================================
 
 def main():
+    global log, log_file
+
+    # Initialize logging
+    log, log_file = setup_logging("init-mod", SCRIPT_DIR)
+    log_section(log, "Initialization")
+    log.info(f"SCRIPT_DIR: {SCRIPT_DIR}")
+    log.info(f"DECOMPILED_DIR: {DECOMPILED_DIR}")
+
     clear_screen()
 
     print()
@@ -1629,10 +1669,31 @@ def main():
     print("  Happy modding!")
     print()
 
+    # Show log file location
+    if log_file:
+        print(f"  Log file: {log_file}")
+        print("  (Share this file if you need help troubleshooting)")
+        print()
+        log.info("=== Mod initialization completed successfully ===")
+        log.info(f"Project created at: {project_path}")
+
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
+        if log:
+            log.warning("Setup cancelled by user (Ctrl+C)")
         print("\n\n  Setup cancelled by user.")
+        if log_file:
+            print(f"  Log file: {log_file}")
+        sys.exit(1)
+    except Exception as e:
+        if log:
+            log.error(f"Unhandled exception: {e}")
+            log_exception(log, "main")
+        print(f"\n\n  ERROR: An unexpected error occurred: {e}")
+        if log_file:
+            print(f"  Log file: {log_file}")
+            print("  Please share this log file when reporting the issue.")
         sys.exit(1)
