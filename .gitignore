@@ -43,3 +43,6 @@ docs/
 
 # HytaleModding.dev site clone (for docs indexing)
 site/
+
+# Discord bot (separate repo)
+discord-bot/
