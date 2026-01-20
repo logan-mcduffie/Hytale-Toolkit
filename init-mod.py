@@ -140,10 +140,16 @@ def prompt_yes_no(question: str, default: bool = True) -> bool:
     while True:
         response = input(f"  {question} {hint}: ").strip().lower()
         if response == "":
+            if log:
+                log.info(f"User prompt: '{question}' -> {'Yes' if default else 'No'} (default)")
             return default
         if response in ("y", "yes"):
+            if log:
+                log.info(f"User prompt: '{question}' -> Yes")
             return True
         if response in ("n", "no"):
+            if log:
+                log.info(f"User prompt: '{question}' -> No")
             return False
         print("  Please enter 'y' or 'n'.")
 
@@ -162,6 +168,8 @@ def prompt_choice(options: list[tuple[str, str]], prompt_text: str = "Select an 
             choice = input(f"  {prompt_text} [1-{len(options)}]: ").strip()
             idx = int(choice) - 1
             if 0 <= idx < len(options):
+                if log:
+                    log.info(f"User choice: '{prompt_text}' -> [{idx + 1}] {options[idx][0]}")
                 return idx
         except ValueError:
             pass
@@ -185,9 +193,14 @@ def prompt_multi_choice(options: list[tuple[str, str]], prompt_text: str = "Sele
         response = input(f"  {prompt_text} (e.g., 1,2 or A for all): ").strip().lower()
 
         if response == "0" or response == "":
+            if log:
+                log.info(f"User multi-choice: '{prompt_text}' -> None (skipped)")
             return []
 
         if response == "a":
+            if log:
+                selected = [options[i][0] for i in range(len(options))]
+                log.info(f"User multi-choice: '{prompt_text}' -> All: {selected}")
             return list(range(len(options)))
 
         try:
@@ -199,7 +212,11 @@ def prompt_multi_choice(options: list[tuple[str, str]], prompt_text: str = "Sele
                 else:
                     raise ValueError()
             if indices:
-                return list(set(indices))
+                result = list(set(indices))
+                if log:
+                    selected = [options[i][0] for i in result]
+                    log.info(f"User multi-choice: '{prompt_text}' -> {selected}")
+                return result
         except ValueError:
             pass
 
@@ -213,16 +230,22 @@ def prompt_string(prompt_text: str, default: str = "", validator: callable = Non
         response = input(f"  {prompt_text}{hint}: ").strip()
         if response == "" and default:
             response = default
+            if log:
+                log.info(f"User input: '{prompt_text}' -> '{response}' (default)")
         if response == "" and required:
             print("  This field is required.")
             continue
         if response == "" and not required:
+            if log:
+                log.info(f"User input: '{prompt_text}' -> (empty)")
             return ""
         if validator:
             error = validator(response)
             if error:
                 print(f"  {error}")
                 continue
+        if log and response != default:
+            log.info(f"User input: '{prompt_text}' -> '{response}'")
         return response
 
 
@@ -403,6 +426,8 @@ def get_hytale_install_path() -> str | None:
         print(f"    {detected}")
         print()
         if prompt_yes_no("Use this path?", default=True):
+            if log:
+                log.info(f"User selected Hytale installation path (auto-detected): {detected}")
             return detected
 
     # Manual selection
@@ -439,6 +464,8 @@ def get_hytale_install_path() -> str | None:
 
         if is_valid:
             print(f"\n  Valid installation found!")
+            if log:
+                log.info(f"User selected Hytale installation path: {folder}")
             return folder
         else:
             print(f"\n  ERROR: Invalid Hytale installation folder.")
@@ -1245,10 +1272,14 @@ def prompt_ram_allocation(default: int = 8) -> int:
     while True:
         response = input(f"  RAM allocation in GB [{default}]: ").strip()
         if response == "":
+            if log:
+                log.info(f"User input: RAM allocation -> {default}GB (default)")
             return default
         try:
             value = int(response)
             if 2 <= value <= 64:
+                if log:
+                    log.info(f"User input: RAM allocation -> {value}GB")
                 return value
             print("  Please enter a value between 2 and 64 GB.")
         except ValueError:
@@ -1412,6 +1443,8 @@ def main():
         print("  ERROR: Invalid folder selected.")
         sys.exit(1)
 
+    if log:
+        log.info(f"User selected project location: {parent_folder}")
     print(f"\n  Project will be created in: {parent_folder}")
 
     # =========================================================================
