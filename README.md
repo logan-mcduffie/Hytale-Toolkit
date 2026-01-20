@@ -47,9 +47,9 @@ When the docs aren't enough, browse the actual decompiled implementation to unde
 
 ### Prerequisites
 
-- **Python 3.10+** - [Download](https://www.python.org/downloads/)
-- **Node.js 18+** - [Download](https://nodejs.org/)
-- **Java 24+** - [Download](https://adoptium.net/)
+- **Python 3.10+** - <a href="https://www.python.org/downloads/" target="_blank">Download</a>
+- **Node.js 18+** - <a href="https://nodejs.org/" target="_blank">Download</a>
+- **Java 24+** - <a href="https://adoptium.net/" target="_blank">Download</a>
 - **Hytale Alpha** - Installed on your system
 
 ### One-Command Setup
