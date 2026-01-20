@@ -1605,6 +1605,28 @@ npx tsx src/index.ts
         print(f"    Created {sh_path}")
 
 
+def get_vscode_user_settings_path() -> Path:
+    """Get the path to VS Code's user settings.json."""
+    system = platform.system()
+    if system == "Windows":
+        return Path(os.environ.get("APPDATA", "")) / "Code" / "User" / "settings.json"
+    elif system == "Darwin":
+        return Path.home() / "Library" / "Application Support" / "Code" / "User" / "settings.json"
+    else:
+        return Path.home() / ".config" / "Code" / "User" / "settings.json"
+
+
+def get_cursor_user_settings_path() -> Path:
+    """Get the path to Cursor's user settings.json."""
+    system = platform.system()
+    if system == "Windows":
+        return Path(os.environ.get("APPDATA", "")) / "Cursor" / "User" / "settings.json"
+    elif system == "Darwin":
+        return Path.home() / "Library" / "Application Support" / "Cursor" / "User" / "settings.json"
+    else:
+        return Path.home() / ".config" / "Cursor" / "User" / "settings.json"
+
+
 def get_client_config_path(client_id: str) -> Path | None:
     """Get the config file path for a given MCP client."""
     home = Path.home()
@@ -1613,8 +1635,8 @@ def get_client_config_path(client_id: str) -> Path | None:
         "claude_code": home / ".claude.json",
         "windsurf": home / ".codeium" / "windsurf" / "mcp_config.json",
         "codex": home / ".codex" / "config.toml",
-        "cursor": None,  # Cursor uses settings UI, we'll show instructions
-        "vscode": None,  # VS Code uses workspace .vscode/mcp.json
+        "cursor": get_cursor_user_settings_path(),
+        "vscode": get_vscode_user_settings_path(),
     }
     return paths.get(client_id)
 
@@ -1644,64 +1666,140 @@ def setup_claude_code(script_dir: Path) -> bool:
 
 def setup_vscode(script_dir: Path) -> bool:
     """Configure VS Code / GitHub Copilot MCP server."""
-    # Create .vscode/mcp.json in the repo root
-    vscode_dir = REPO_ROOT / ".vscode"
-    vscode_dir.mkdir(exist_ok=True)
-    config_path = vscode_dir / "mcp.json"
-
     mcp_config = get_mcp_command_simple(script_dir)
     # VS Code's mcp.json format doesn't use "type" field - remove it
     mcp_config.pop("type", None)
 
-    if config_path.exists():
-        try:
-            config = json.loads(config_path.read_text(encoding='utf-8'))
-        except json.JSONDecodeError:
+    # Ask user about installation scope
+    print()
+    print("    VS Code MCP Configuration:")
+    print()
+    scope_options = [
+        ("Global (Recommended)", "Works in any VS Code workspace.\nConfig stored in your user settings."),
+        ("Workspace only", "Only works when this specific folder is open.\nConfig stored in .vscode/mcp.json"),
+    ]
+    scope_choice = prompt_choice(scope_options, "Installation scope")
+
+    if scope_choice == 0:
+        # Global installation - add to user settings.json
+        config_path = get_vscode_user_settings_path()
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if config_path.exists():
+            try:
+                config = json.loads(config_path.read_text(encoding='utf-8'))
+            except json.JSONDecodeError:
+                config = {}
+        else:
             config = {}
+
+        # VS Code uses "mcp.servers" in user settings
+        if "mcp.servers" not in config:
+            config["mcp.servers"] = {}
+
+        config["mcp.servers"]["hytale-rag"] = mcp_config
+        config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
+
+        print(f"    Added 'hytale-rag' to {config_path}")
+        print()
+        print("    The MCP server is now available globally in VS Code.")
     else:
-        config = {}
+        # Workspace installation - create .vscode/mcp.json
+        vscode_dir = REPO_ROOT / ".vscode"
+        vscode_dir.mkdir(exist_ok=True)
+        config_path = vscode_dir / "mcp.json"
 
-    if "servers" not in config:
-        config["servers"] = {}
+        if config_path.exists():
+            try:
+                config = json.loads(config_path.read_text(encoding='utf-8'))
+            except json.JSONDecodeError:
+                config = {}
+        else:
+            config = {}
 
-    config["servers"]["hytale-rag"] = mcp_config
-    config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
+        if "servers" not in config:
+            config["servers"] = {}
 
-    print(f"    Added 'hytale-rag' to {config_path}")
+        config["servers"]["hytale-rag"] = mcp_config
+        config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
+
+        print(f"    Added 'hytale-rag' to {config_path}")
+        print()
+        print("    NOTE: This only works when this folder is open in VS Code.")
+
     print()
     print("    To use with GitHub Copilot:")
-    print("      1. Open VS Code 1.102+ in this workspace")
+    print("      1. Open VS Code 1.102+")
     print("      2. Enable Copilot Agent mode")
     print("      3. The MCP server will be available automatically")
     return True
 
 
 def setup_cursor(script_dir: Path) -> bool:
-    """Show instructions for Cursor setup."""
+    """Configure Cursor MCP server."""
     mcp_config = get_mcp_command_simple(script_dir)
-    system = platform.system()
+
+    # Ask user about installation scope
+    print()
+    print("    Cursor MCP Configuration:")
+    print()
+    scope_options = [
+        ("Global (Recommended)", "Works in any Cursor workspace.\nConfig stored in your user settings."),
+        ("Workspace only", "Only works when this specific folder is open.\nConfig stored in .cursor/mcp.json"),
+    ]
+    scope_choice = prompt_choice(scope_options, "Installation scope")
+
+    if scope_choice == 0:
+        # Global installation - add to user settings.json
+        config_path = get_cursor_user_settings_path()
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if config_path.exists():
+            try:
+                config = json.loads(config_path.read_text(encoding='utf-8'))
+            except json.JSONDecodeError:
+                config = {}
+        else:
+            config = {}
+
+        # Cursor uses "mcpServers" in user settings
+        if "mcpServers" not in config:
+            config["mcpServers"] = {}
+
+        config["mcpServers"]["hytale-rag"] = mcp_config
+        config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
+
+        print(f"    Added 'hytale-rag' to {config_path}")
+        print()
+        print("    The MCP server is now available globally in Cursor.")
+    else:
+        # Workspace installation - create .cursor/mcp.json
+        cursor_dir = REPO_ROOT / ".cursor"
+        cursor_dir.mkdir(exist_ok=True)
+        config_path = cursor_dir / "mcp.json"
+
+        if config_path.exists():
+            try:
+                config = json.loads(config_path.read_text(encoding='utf-8'))
+            except json.JSONDecodeError:
+                config = {}
+        else:
+            config = {}
+
+        if "mcpServers" not in config:
+            config["mcpServers"] = {}
+
+        config["mcpServers"]["hytale-rag"] = mcp_config
+        config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
+
+        print(f"    Added 'hytale-rag' to {config_path}")
+        print()
+        print("    NOTE: This only works when this folder is open in Cursor.")
 
     print()
-    print("    Cursor Setup Instructions:")
-    print("    ---------------------------")
-    print("    1. Open Cursor Settings (Cmd/Ctrl + ,)")
-    print("    2. Go to: Tools & Integrations > New MCP Server")
-    print("    3. Name: hytale-rag")
-    print("    4. Type: command")
-    print(f"    5. Command: {mcp_config['command']}")
-    print(f"    6. Args: {' '.join(mcp_config['args'])}")
-    print()
-
-    # Also create a cursor config file for manual copy
-    cursor_config = {
-        "mcpServers": {
-            "hytale-rag": mcp_config
-        }
-    }
-    cursor_snippet_path = script_dir / "cursor-mcp-config.json"
-    cursor_snippet_path.write_text(json.dumps(cursor_config, indent=2), encoding='utf-8')
-    print(f"    Config snippet saved to: {cursor_snippet_path}")
-    print("    (You can copy this into Cursor's MCP settings)")
+    print("    To use the MCP server:")
+    print("      1. Restart Cursor (or reload the window)")
+    print("      2. The hytale-rag tools will be available in chat")
     return True
 
 
