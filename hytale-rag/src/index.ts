@@ -213,7 +213,27 @@ async function main() {
   logger.info(`Embedding provider: ${config.embedding.provider}`);
   logger.info(`Vector store: ${config.vectorStore.provider}`);
   logger.info(`Database path: ${config.vectorStore.path || "not set"}`);
-  logger.debug(`Full config: ${JSON.stringify(config, null, 2)}`);
+
+  // Log config with sensitive values redacted
+  const redactedConfig = {
+    ...config,
+    embedding: {
+      ...config.embedding,
+      apiKey: config.embedding.apiKey ? "[REDACTED]" : undefined,
+    },
+    vectorStore: {
+      ...config.vectorStore,
+      apiKey: config.vectorStore.apiKey ? "[REDACTED]" : undefined,
+    },
+    api: {
+      ...config.api,
+      auth: {
+        ...config.api.auth,
+        apiKeys: config.api.auth.apiKeys.length > 0 ? ["[REDACTED]"] : [],
+      },
+    },
+  };
+  logger.debug(`Full config: ${JSON.stringify(redactedConfig, null, 2)}`);
 
   // Check for embedding configuration - warn but don't exit (for MCP mode)
   let configError: string | undefined;
