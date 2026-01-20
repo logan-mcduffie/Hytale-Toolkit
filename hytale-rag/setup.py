@@ -48,6 +48,9 @@ JAVADOCS_DIR = REPO_ROOT / "javadocs"      # Also in repo root
 # Required contents of a valid Hytale installation
 REQUIRED_CONTENTS = ["Client", "Server", "Assets.zip"]
 
+# Default Hytale installation path (Windows only)
+DEFAULT_HYTALE_PATH = Path(os.environ.get("APPDATA", "")) / "Hytale" / "install" / "release" / "package" / "game" / "latest"
+
 # Data tables
 DATA_TABLES = ["hytale_methods.lance", "hytale_client_ui.lance", "hytale_gamedata.lance"]
 
@@ -287,6 +290,15 @@ def get_hytale_install_path(env: dict[str, str]) -> str | None:
                 return existing
         else:
             print(f"  Saved path is no longer valid (missing: {', '.join(missing)})")
+
+    # Check default Hytale installation path (Windows)
+    if platform.system() == "Windows" and DEFAULT_HYTALE_PATH.exists():
+        default_str = str(DEFAULT_HYTALE_PATH)
+        is_valid, missing = validate_hytale_installation(default_str)
+        if is_valid:
+            print(f"\n  Found Hytale at default location: {default_str}")
+            if prompt_yes_no("Use this path?", default=True):
+                return default_str
 
     # Show instructions
     print()

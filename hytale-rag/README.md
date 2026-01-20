@@ -4,9 +4,9 @@ Semantic code search for the decompiled Hytale server codebase. This MCP server 
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/) v18+
-- [Claude Code](https://claude.ai/claude-code) CLI
-- [Voyage AI API key](https://dash.voyageai.com/) (for query embedding)
+- <a href="https://nodejs.org/" target="_blank">Node.js</a> v18+
+- <a href="https://claude.ai/claude-code" target="_blank">Claude Code</a> CLI
+- <a href="https://dash.voyageai.com/" target="_blank">Voyage AI API key</a> (for query embedding)
 
 ## Quick Setup
 

@@ -154,7 +154,17 @@ export class ToolRegistry {
         };
       }
 
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      let errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Check for Ollama connection errors and provide a helpful message
+      if (context.config.embedding.provider === "ollama" && isConnectionError(error)) {
+        errorMessage = `Failed to connect to Ollama. Make sure the Ollama service is running.\n\n` +
+          `To start Ollama:\n` +
+          `  - On macOS/Linux: Run "ollama serve" in a terminal\n` +
+          `  - On Windows: Start the Ollama application\n\n` +
+          `Original error: ${errorMessage}`;
+      }
+
       logger.error(`Tool '${name}' execution failed: ${errorMessage}`, error instanceof Error ? error : undefined);
       return {
         success: false,
@@ -184,6 +194,34 @@ export class ToolRegistry {
       },
     }));
   }
+}
+
+/**
+ * Check if an error is a network/connection error (used for Ollama service detection)
+ */
+function isConnectionError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+
+  const message = error.message.toLowerCase();
+  const errorCode = (error as NodeJS.ErrnoException).code?.toLowerCase();
+
+  // Check for common connection error patterns
+  const connectionPatterns = [
+    "econnrefused",      // Connection refused
+    "enotfound",         // DNS lookup failed
+    "etimedout",         // Connection timed out
+    "enetunreach",       // Network unreachable
+    "ehostunreach",      // Host unreachable
+    "fetch failed",      // Node fetch error
+    "connect econnrefused",
+    "socket hang up",
+    "network error",
+  ];
+
+  return (
+    connectionPatterns.some((pattern) => message.includes(pattern)) ||
+    (errorCode !== undefined && connectionPatterns.includes(errorCode))
+  );
 }
 
 // Use 'any' for Zod internals since _def types are not exported
