@@ -1693,11 +1693,13 @@ def setup_vscode(script_dir: Path) -> bool:
         else:
             config = {}
 
-        # VS Code uses "mcp.servers" in user settings
-        if "mcp.servers" not in config:
-            config["mcp.servers"] = {}
+        # VS Code uses nested "mcp" -> "servers" in user settings
+        if "mcp" not in config:
+            config["mcp"] = {}
+        if "servers" not in config["mcp"]:
+            config["mcp"]["servers"] = {}
 
-        config["mcp.servers"]["hytale-rag"] = mcp_config
+        config["mcp"]["servers"]["hytale-rag"] = mcp_config
         config_path.write_text(json.dumps(config, indent=2), encoding='utf-8')
 
         print(f"    Added 'hytale-rag' to {config_path}")
