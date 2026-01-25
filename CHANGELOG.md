@@ -5,6 +5,14 @@ All notable changes to Hytale Toolkit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.10] - 2025-01-25
+
+### Fixed
+- VS Code Gemini and Codex extensions now properly configure MCP (share VS Code settings.json)
+- JetBrains Codex extension now properly configures MCP (shares JetBrains config)
+- Removed false "Not yet supported" messages for supported providers
+- Maven `run-server` profile now copies JAR to `Server/mods` (was incorrectly using `Server/plugins`)
+
 ## [1.0.9] - 2025-01-25
 
 ### Added

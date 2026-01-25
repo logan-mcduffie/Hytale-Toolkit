@@ -5011,21 +5011,22 @@ class IntegrationPage(QWidget):
 
         # Mapping from GUI provider IDs to setup functions
         # Some providers share the same config file (e.g., vscode_claude and claude_code both use .claude.json)
+        # VS Code extensions share settings.json, JetBrains extensions share mcp.json
         provider_setup_map = {
-            # VS Code providers
+            # VS Code providers - all share VS Code settings.json mcp.servers config
             "vscode_copilot": ("vscode", setup_vscode, "VS Code settings"),
             "vscode_claude": ("claude_code", setup_claude_code, "~/.claude.json"),
-            "vscode_gemini": (None, None, "Not yet supported"),
-            "vscode_codex": (None, None, "Not yet supported"),
-            # JetBrains providers
+            "vscode_gemini": ("vscode", setup_vscode, "VS Code settings"),
+            "vscode_codex": ("vscode", setup_vscode, "VS Code settings"),
+            # JetBrains providers - share JetBrains MCP config
             "jetbrains_copilot": ("jetbrains", setup_jetbrains, "JetBrains MCP config"),
             "jetbrains_claude": ("claude_code", setup_claude_code, "~/.claude.json"),
-            "jetbrains_codex": (None, None, "Not yet supported"),
+            "jetbrains_codex": ("jetbrains", setup_jetbrains, "JetBrains MCP config"),
             # Desktop/CLI providers
             "claude_code": ("claude_code", setup_claude_code, "~/.claude.json"),
             "claude_desktop": ("claude_desktop", self._setup_claude_desktop, "Claude Desktop config"),
             "codex_cli": ("codex", setup_codex, "~/.codex/config.toml"),
-            "gemini_cli": (None, None, "Not yet supported"),
+            "gemini_cli": (None, None, "Gemini CLI doesn't support MCP yet"),
         }
 
         # Track which setup functions we've already run to avoid duplicates
@@ -5034,7 +5035,10 @@ class IntegrationPage(QWidget):
 
         # Create start scripts if needed for certain providers
         needs_scripts = any(
-            pid in selected for pid in ["vscode_copilot", "jetbrains_copilot", "codex_cli"]
+            pid in selected for pid in [
+                "vscode_copilot", "vscode_gemini", "vscode_codex",
+                "jetbrains_copilot", "jetbrains_codex", "codex_cli"
+            ]
         )
         if needs_scripts:
             try:

@@ -938,7 +938,7 @@ def generate_pom_xml(mod_config: dict, hytale_path: str, toolkit_path: str, lang
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${{hytale.install.path}}/Server/plugins</outputDirectory>
+                                    <outputDirectory>${{hytale.install.path}}/Server/mods</outputDirectory>
                                     <resources>
                                         <resource>
                                             <directory>${{project.build.directory}}</directory>
@@ -1000,7 +1000,7 @@ def generate_pom_xml(mod_config: dict, hytale_path: str, toolkit_path: str, lang
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${{hytale.install.path}}/Server/plugins</outputDirectory>
+                                    <outputDirectory>${{hytale.install.path}}/Server/mods</outputDirectory>
                                     <resources>
                                         <resource>
                                             <directory>${{project.build.directory}}</directory>
@@ -1198,7 +1198,7 @@ mvnw.cmd clean package
 ./mvnw clean package -Prun-server
 ```
 
-This will build your plugin, copy it to the server's plugins folder, and start the Hytale server.
+This will build your plugin, copy it to the server's mods folder, and start the Hytale server.
 
 ### Install Plugin Only (Hot Reload)
 
@@ -1757,7 +1757,7 @@ def generate_vscode_config(mod_config: dict, project_path: Path, toolkit_path: s
                     "windows": {"command": ".\\mvnw.cmd", "args": ["package", "-Pinstall-plugin"]},
                     "group": "build",
                     "problemMatcher": "$maven",
-                    "detail": "Builds and copies plugin to Hytale Server/plugins folder"
+                    "detail": "Builds and copies plugin to Hytale Server/mods folder"
                 },
                 {
                     "label": "Maven: Run Server",
@@ -1811,7 +1811,7 @@ def generate_vscode_config(mod_config: dict, project_path: Path, toolkit_path: s
                     "windows": {"command": ".\\gradlew.bat", "args": ["installPlugin"]},
                     "group": "build",
                     "problemMatcher": "$gradle",
-                    "detail": "Builds and copies plugin to Hytale Server/plugins folder"
+                    "detail": "Builds and copies plugin to Hytale Server/mods folder"
                 },
                 {
                     "label": "Gradle: Run Server",
