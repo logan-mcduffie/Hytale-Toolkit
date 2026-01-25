@@ -5,6 +5,14 @@ All notable changes to Hytale Toolkit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.7] - 2025-01-25
+
+### Fixed
+- CLI tool installation now validates hytale-mod-cli directory exists before installing
+- Shows clear error message if CLI directory is missing (suggests git pull or re-download)
+- Improved UI responsiveness when clicking action buttons (decompile, javadocs, integration)
+- Buttons and views now update immediately before heavy operations begin
+
 ## [1.0.6] - 2025-01-25
 
 ### Fixed

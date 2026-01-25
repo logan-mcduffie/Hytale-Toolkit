@@ -2308,7 +2308,7 @@ class DecompilePage(QWidget):
         self._state = "running"
         self._class_count = 0
 
-        # Switch to terminal view
+        # Immediate UI feedback
         self.stack.setCurrentIndex(1)
         self.desc.setText("Decompiling Hytale server JAR...")
         self.terminal.clear_terminal()
@@ -2316,12 +2316,17 @@ class DecompilePage(QWidget):
         self.progress_label.setText("Starting...")
         self.class_count_label.setText("")
 
-        # Notify wizard
+        # Notify wizard immediately so button updates
         if self._button_callback:
             self._button_callback()
         if self._back_button_callback:
             self._back_button_callback()
 
+        # Defer the actual work to next event loop tick for responsive UI
+        QTimer.singleShot(0, self._do_decompile_work)
+
+    def _do_decompile_work(self):
+        """Actual decompilation work - called after UI has updated."""
         # Setup log file
         toolkit_path = Path(self._toolkit_path)
         logs_dir = toolkit_path / "logs"
@@ -3077,12 +3082,17 @@ class JavadocsPage(QWidget):
         self.progress_label.setStyleSheet("font-size: 12px; color: #888888;")
         self.file_count_label.setText("")
 
-        # Notify wizard
+        # Notify wizard immediately so button updates
         if self._button_callback:
             self._button_callback()
         if self._back_button_callback:
             self._back_button_callback()
 
+        # Defer the actual work to next event loop tick for responsive UI
+        QTimer.singleShot(0, self._do_generate_work)
+
+    def _do_generate_work(self):
+        """Actual Javadocs generation work - called after UI has updated."""
         # Setup log file
         toolkit_path = Path(self._toolkit_path)
         logs_dir = toolkit_path / "logs"
@@ -5269,6 +5279,8 @@ class IntegrationPage(QWidget):
             self._is_installing = True
             if self._button_callback:
                 self._button_callback()
+            if self._back_button_callback:
+                self._back_button_callback()
             # Use QTimer to allow UI to update before running installation
             QTimer.singleShot(100, self._run_installation)
 
@@ -5680,6 +5692,33 @@ class CLIToolsPage(QWidget):
     def _run_pip_install(self):
         """Run pip install for the CLI tool."""
         cli_path = "hytale-mod-cli"
+
+        # Check if hytale-mod-cli directory exists at toolkit path
+        if self._toolkit_path:
+            cli_dir = Path(self._toolkit_path) / cli_path
+            if not cli_dir.exists():
+                self.terminal.appendPlainText(f"ERROR: {cli_path}/ directory not found at toolkit path.\n")
+                self.terminal.appendPlainText("This usually means the toolkit is from an older version.\n")
+                self.terminal.appendPlainText("Please re-download the toolkit or run 'git pull' in the toolkit directory.\n")
+                self._state = "failed"
+                self.status_label.setText("Installation failed - CLI directory missing")
+                self.status_label.setStyleSheet("font-size: 14px; color: #EF4444;")
+                self.progress.setRange(0, 100)
+                self.progress.setValue(0)
+                if self._button_callback:
+                    self._button_callback()
+                return
+            if not (cli_dir / "pyproject.toml").exists() and not (cli_dir / "setup.py").exists():
+                self.terminal.appendPlainText(f"ERROR: {cli_path}/ is not a valid Python package.\n")
+                self.terminal.appendPlainText("Missing pyproject.toml or setup.py.\n")
+                self._state = "failed"
+                self.status_label.setText("Installation failed - invalid package")
+                self.status_label.setStyleSheet("font-size: 14px; color: #EF4444;")
+                self.progress.setRange(0, 100)
+                self.progress.setValue(0)
+                if self._button_callback:
+                    self._button_callback()
+                return
 
         if self._is_reinstall:
             self.terminal.appendPlainText("$ pip install -e hytale-mod-cli/ --force-reinstall\n")
