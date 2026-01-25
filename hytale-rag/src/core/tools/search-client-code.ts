@@ -6,6 +6,7 @@
 
 import { searchClientCodeSchema, type SearchClientCodeInput } from "../schemas.js";
 import type { ToolDefinition, ToolContext, ToolResult } from "./index.js";
+import { resolveClientDataPath } from "../../utils/paths.js";
 
 /**
  * Client UI search result
@@ -85,11 +86,12 @@ export function formatClientUIResults(results: ClientUISearchResult[]): string {
 
   return results
     .map((r, i) => {
+      const fullPath = resolveClientDataPath(r.filePath);
       const fileType = r.type === "xaml" ? "xml" : r.type === "ui" ? "css" : "json";
       return `## Result ${i + 1}: ${r.name}
 **Type:** ${r.type.toUpperCase()}
 **Category:** ${r.category || "General"}
-**Path:** ${r.relativePath}
+**Path:** ${fullPath}
 **Relevance:** ${(r.score * 100).toFixed(1)}%
 
 \`\`\`${fileType}

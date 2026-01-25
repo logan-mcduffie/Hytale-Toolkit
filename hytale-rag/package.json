@@ -25,6 +25,7 @@
     "express": "^4.21.0",
     "java-parser": "^2.3.0",
     "jsonc-parser": "^3.3.1",
+    "undici": "^6.0.0",
     "yauzl": "^3.2.0",
     "zod": "^3.23.0"
   },

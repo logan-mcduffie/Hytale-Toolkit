@@ -3,6 +3,9 @@
  *
  * Implementation of EmbeddingProvider for Voyage AI.
  * Uses voyage-code-3 for code and voyage-4-large for text/gamedata.
+ *
+ * Supports HTTPS_PROXY/HTTP_PROXY environment variables for users
+ * in regions where Voyage AI may be geo-blocked.
  */
 
 import {
@@ -13,8 +16,24 @@ import {
   EmbeddingPurpose,
   EmbeddingProgressCallback,
 } from "./interface.js";
+import { ProxyAgent, type Dispatcher } from "undici";
 
 const VOYAGE_API_URL = "https://api.voyageai.com/v1/embeddings";
+
+/**
+ * Get proxy dispatcher if HTTPS_PROXY or HTTP_PROXY is configured.
+ * Returns undefined if no proxy is set.
+ */
+function getProxyDispatcher(): Dispatcher | undefined {
+  const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY ||
+                   process.env.https_proxy || process.env.http_proxy;
+
+  if (!proxyUrl) {
+    return undefined;
+  }
+
+  return new ProxyAgent(proxyUrl);
+}
 
 /** Default models for different purposes */
 const DEFAULT_MODELS = {
@@ -64,6 +83,7 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
   private models: { code: string; text: string };
   private batchSize: number;
   private rateLimitMs: number;
+  private dispatcher: Dispatcher | undefined;
 
   constructor(config: EmbeddingProviderConfig) {
     if (!config.apiKey) {
@@ -77,6 +97,7 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
     };
     this.batchSize = config.batchSize || DEFAULT_BATCH_SIZE;
     this.rateLimitMs = config.rateLimitMs || DEFAULT_RATE_LIMIT_MS;
+    this.dispatcher = getProxyDispatcher();
   }
 
   /**
@@ -112,6 +133,8 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
           input: batch,
           input_type: inputType,
         }),
+        // @ts-expect-error - dispatcher is a valid undici option for Node.js fetch
+        dispatcher: this.dispatcher,
       });
 
       if (!response.ok) {
@@ -178,6 +201,8 @@ export class VoyageEmbeddingProvider implements EmbeddingProvider {
           input: ["test"],
           input_type: "query",
         }),
+        // @ts-expect-error - dispatcher is a valid undici option for Node.js fetch
+        dispatcher: this.dispatcher,
       });
 
       return response.ok;

@@ -2,9 +2,11 @@
 import "dotenv/config";
 import { embedQuery, type IngestEmbeddingConfig } from "./embedder.js";
 import { search, getStats, type SearchResult } from "./db.js";
+import * as fs from "fs";
+import { resolveCodePath } from "./utils/paths.js";
 
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { dirname, join, resolve } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,10 +39,11 @@ function getEmbeddingConfig(): IngestEmbeddingConfig {
 
 function formatResult(result: SearchResult, index: number, verbose: boolean): string {
   const lines: string[] = [];
+  const fullPath = resolveCodePath(result.filePath);
 
   lines.push(`--- Result ${index + 1} (score: ${result.score.toFixed(3)}) ---`);
   lines.push(`ID: ${result.id}`);
-  lines.push(`File: ${result.filePath}:${result.lineStart}-${result.lineEnd}`);
+  lines.push(`File: ${fullPath}:${result.lineStart}-${result.lineEnd}`);
   lines.push(`Signature: ${result.methodSignature}`);
 
   if (verbose) {
@@ -57,7 +60,7 @@ function formatCompact(results: SearchResult[]): string {
   return JSON.stringify(
     results.map((r) => ({
       id: r.id,
-      file: r.filePath,
+      file: resolveCodePath(r.filePath),
       line: r.lineStart,
       signature: r.methodSignature,
       score: r.score,

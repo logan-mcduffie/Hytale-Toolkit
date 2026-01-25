@@ -29,3 +29,4 @@ cursor-mcp-config.json
 # Release staging (personal use)
 stage-release.py
 release-staging/
+data/

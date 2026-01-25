@@ -1,0 +1,161 @@
+name: Build and Release Tools
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x64
+            suffix: ""
+          - os: macos-latest
+            platform: macos-x64
+            suffix: ""
+          - os: macos-14  # M1/ARM
+            platform: macos-arm64
+            suffix: ""
+          - os: windows-latest
+            platform: windows-x64
+            suffix: ".exe"
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller pyqt6 pillow
+
+      - name: Build executables
+        run: python build-tools.py --clean
+
+      - name: Rename executables for release
+        shell: bash
+        run: |
+          cd dist
+          for file in *; do
+            if [ -f "$file" ]; then
+              name="${file%${{ matrix.suffix }}}"
+              mv "$file" "${name}-${{ matrix.platform }}${{ matrix.suffix }}"
+            fi
+          done
+          ls -la
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tools-${{ matrix.platform }}
+          path: dist/*
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir -p release
+          find artifacts -type f -exec mv {} release/ \;
+          ls -la release/
+
+      - name: Get version tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate release body
+        run: |
+          VERSION="${{ steps.tag.outputs.tag }}"
+          VERSION="${VERSION#v}"  # Remove 'v' prefix
+
+          # Extract the section for this version from CHANGELOG.md
+          CHANGELOG=$(awk "/^## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
+
+          # If no specific version found, use a default message
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="See CHANGELOG.md for details."
+          fi
+
+          # Build the release body
+          cat > release_body.md << RELEASE_EOF
+          ## What's New
+
+          ${CHANGELOG}
+
+          ---
+
+          ## Downloads
+
+          | Platform | Setup Tool | Mod CLI |
+          |----------|------------|---------|
+          | Windows (x64) | \`hytale-setup-windows-x64.exe\` | \`hytale-mod-windows-x64.exe\` |
+          | macOS (Intel) | \`hytale-setup-macos-x64\` | \`hytale-mod-macos-x64\` |
+          | macOS (Apple Silicon) | \`hytale-setup-macos-arm64\` | \`hytale-mod-macos-arm64\` |
+          | Linux (x64) | \`hytale-setup-linux-x64\` | \`hytale-mod-linux-x64\` |
+
+          ## Tools
+
+          - **hytale-setup**: GUI wizard that sets up the Hytale Toolkit (downloads databases, configures MCP)
+          - **hytale-mod**: CLI tool for creating new Hytale mod projects
+
+          ## Quick Start
+
+          \`\`\`bash
+          # Run the setup wizard (first time only)
+          ./hytale-setup
+
+          # Create a new mod project
+          ./hytale-mod
+          \`\`\`
+
+          ## Notes
+
+          Database files are downloaded automatically by the setup tool from [downloads.loganmcduffie.com](https://downloads.loganmcduffie.com/db/).
+          RELEASE_EOF
+
+          cat release_body.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Hytale Toolkit ${{ steps.tag.outputs.tag }}
+          draft: false
+          prerelease: false
+          files: release/*
+          body_path: release_body.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

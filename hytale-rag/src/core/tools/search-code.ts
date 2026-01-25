@@ -7,6 +7,7 @@
 import { searchCodeSchema, type SearchCodeInput } from "../schemas.js";
 import type { ToolDefinition, ToolContext, ToolResult } from "./index.js";
 import type { CodeSearchResult } from "../types.js";
+import { resolveCodePath } from "../../utils/paths.js";
 
 /**
  * Search code tool definition
@@ -74,9 +75,10 @@ export function formatCodeResults(results: CodeSearchResult[]): string {
 
   return results
     .map((r, i) => {
+      const fullPath = resolveCodePath(r.filePath);
       return `## Result ${i + 1}: ${r.className}.${r.methodName}
 **Package:** ${r.packageName}
-**File:** ${r.filePath}:${r.lineStart}-${r.lineEnd}
+**File:** ${fullPath}:${r.lineStart}-${r.lineEnd}
 **Signature:** \`${r.methodSignature}\`
 **Relevance:** ${(r.score * 100).toFixed(1)}%
 

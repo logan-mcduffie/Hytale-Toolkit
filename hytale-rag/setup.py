@@ -10,6 +10,8 @@ A comprehensive setup script that guides you through:
 5. Configuring Claude Code integration
 """
 
+__version__ = "1.0.0"
+
 import json
 import os
 import platform
@@ -22,9 +24,43 @@ import time
 import urllib.request
 from pathlib import Path
 
-# Add parent directory to path for shared utilities
-sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
-from logger import setup_logging, log_command, log_exception, log_section
+
+def get_base_path() -> Path:
+    """Get the base path for resources, handling both normal and frozen (PyInstaller) execution."""
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        return Path(sys.executable).parent
+    else:
+        # Running as script
+        return Path(__file__).parent.resolve()
+
+
+def get_repo_root() -> Path:
+    """Get the repository root path."""
+    if getattr(sys, 'frozen', False):
+        # When frozen, we're in the same directory as the executable
+        return get_base_path()
+    else:
+        return get_base_path().parent
+
+
+# Add parent directory to path for shared utilities (only when not frozen)
+if not getattr(sys, 'frozen', False):
+    sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+    from logger import setup_logging, log_command, log_exception, log_section
+else:
+    # When frozen, use bundled logger or create a simple fallback
+    try:
+        from logger import setup_logging, log_command, log_exception, log_section
+    except ImportError:
+        # Fallback if logger not bundled
+        def setup_logging(name, path):
+            import logging
+            logging.basicConfig(level=logging.INFO)
+            return logging.getLogger(name), None
+        def log_command(*args, **kwargs): pass
+        def log_exception(*args, **kwargs): pass
+        def log_section(*args, **kwargs): pass
 
 # Global logger (initialized in main)
 log = None
@@ -35,11 +71,12 @@ log_file = None
 # ============================================================================
 
 GITHUB_REPO = "logan-mcduffie/Hytale-Toolkit"
+CDN_BASE_URL = "https://cdn.loganmcduffie.com"
 OLLAMA_MODEL = "nomic-embed-text"
 JDK_VERSION = 21  # LTS version for javadoc generation
 
-SCRIPT_DIR = Path(__file__).parent.resolve()
-REPO_ROOT = SCRIPT_DIR.parent
+SCRIPT_DIR = get_base_path()
+REPO_ROOT = get_repo_root()
 VINEFLOWER_JAR = REPO_ROOT / "tools" / "vineflower.jar"
 ENV_FILE = SCRIPT_DIR / ".env"
 DECOMPILED_DIR = REPO_ROOT / "decompiled"  # Always in repo root
@@ -1367,7 +1404,7 @@ def verify_database_files(lancedb_dir: Path) -> tuple[bool, str]:
 
 
 def download_database(dest_dir: Path, provider: str) -> bool:
-    """Download and extract the LanceDB database from GitHub releases."""
+    """Download and extract the LanceDB database from CDN."""
     import ssl
 
     if log:
@@ -1379,49 +1416,43 @@ def download_database(dest_dir: Path, provider: str) -> bool:
     asset_name = f"lancedb-{provider}-all.tar.gz"
     tarball_path = dest_dir / asset_name
 
-    api_url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+    manifest_url = f"{CDN_BASE_URL}/db/manifest.json"
 
-    print("  Fetching latest release info...")
+    print("  Fetching latest version info...")
     if log:
-        log.debug(f"API URL: {api_url}")
+        log.debug(f"Manifest URL: {manifest_url}")
     try:
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
 
-        req = urllib.request.Request(api_url, headers={"User-Agent": "Hytale-RAG-Setup"})
+        req = urllib.request.Request(manifest_url, headers={"User-Agent": "Hytale-RAG-Setup"})
         with urllib.request.urlopen(req, context=ctx, timeout=30) as response:
-            release_info = json.loads(response.read().decode())
+            manifest = json.loads(response.read().decode())
 
-        download_url = None
-        for asset in release_info.get("assets", []):
-            if asset["name"] == asset_name:
-                download_url = asset["browser_download_url"]
-                break
-
-        if not download_url:
+        latest_version = manifest.get("latest")
+        if not latest_version:
             if log:
-                log.error(f"Asset {asset_name} not found in release")
-                log.error(f"Available assets: {[a['name'] for a in release_info.get('assets', [])]}")
-            print(f"  ERROR: Could not find {asset_name} in latest release.")
-            print(f"  Available assets:")
-            for asset in release_info.get("assets", []):
-                print(f"    - {asset['name']}")
+                log.error("No latest version found in manifest")
+            print("  ERROR: No latest version found in manifest.")
             return False
 
+        download_url = f"{CDN_BASE_URL}/db/{latest_version}/{asset_name}"
         if log:
-            log.info(f"Found download URL: {download_url}")
+            log.info(f"Latest version: {latest_version}")
+            log.info(f"Download URL: {download_url}")
+
+        print(f"  Latest version: {latest_version}")
 
     except Exception as e:
         if log:
-            log.error(f"Failed to fetch release info: {e}")
+            log.error(f"Failed to fetch manifest: {e}")
             log_exception(log, "download_database")
-        print(f"  ERROR: Failed to fetch release info: {e}")
+        print(f"  ERROR: Failed to fetch version info: {e}")
         return False
 
     print(f"  Downloading {asset_name}...")
     try:
-        # Use urlopen with SSL context (urlretrieve doesn't support SSL context)
         req = urllib.request.Request(download_url, headers={"User-Agent": "Hytale-RAG-Setup"})
         with urllib.request.urlopen(req, context=ctx, timeout=300) as response:
             total_size = int(response.headers.get("Content-Length", 0))
@@ -1472,12 +1503,11 @@ def download_database(dest_dir: Path, provider: str) -> bool:
         return False
 
     # Save the version to a .version file for the MCP server to read
-    version_tag = release_info.get("tag_name", "unknown")
     version_file = dest_dir / ".version"
     try:
-        version_file.write_text(version_tag)
+        version_file.write_text(latest_version)
         if log:
-            log.info(f"Database version: {version_tag}")
+            log.info(f"Database version: {latest_version}")
     except Exception:
         pass  # Non-critical if this fails
 
@@ -2115,8 +2145,30 @@ def main():
         sys.exit(1)
 
     env["HYTALE_INSTALL_PATH"] = install_path
+
+    # Auto-detect and save other paths
+    path_obj = Path(install_path)
+    
+    # Client Data
+    client_data = path_obj / "Client" / "Data"
+    if client_data.exists():
+        env["HYTALE_CLIENT_DATA_DIR"] = str(client_data)
+        if log:
+            log.info(f"Detected Client Data: {client_data}")
+    
+    # Assets (root dir contains Assets.zip)
+    env["HYTALE_ASSETS_DIR"] = install_path
+    
+    # Decompiled source
+    env["HYTALE_DECOMPILED_DIR"] = str(DECOMPILED_DIR)
+    
     save_env(env)
-    print(f"\n  Saved installation path to .env")
+    print(f"\n  Saved configuration to .env:")
+    print(f"    - HYTALE_INSTALL_PATH")
+    if "HYTALE_CLIENT_DATA_DIR" in env:
+        print(f"    - HYTALE_CLIENT_DATA_DIR")
+    print(f"    - HYTALE_ASSETS_DIR")
+    print(f"    - HYTALE_DECOMPILED_DIR")
 
     # =========================================================================
     # Step 2: Decompile Source Code

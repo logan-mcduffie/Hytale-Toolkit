@@ -274,14 +274,16 @@ def run_ingest(name: str, script: str, args: list[str], provider: str, env_vars:
     proc_env.update(env_vars)
 
     cmd = ["npx", "tsx", script] + args
-
+    # Use shell=True only on Windows to resolve 'npx' from PATH
+    # Linux and macOS (Darwin) must use shell=False when passing a list
+    use_shell = platform.system() == "Windows"
     try:
         # Stream output live so user can see progress
         result = subprocess.run(
             cmd,
             cwd=str(SCRIPT_DIR),
             env=proc_env,
-            shell=True
+            shell=use_shell
         )
         print()
         if result.returncode == 0:

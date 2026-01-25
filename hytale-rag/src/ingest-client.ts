@@ -159,6 +159,11 @@ async function main() {
   });
   console.log("");
 
+  // Normalize paths: Use relative path as the file path for portability
+  for (const chunk of chunks) {
+    chunk.filePath = chunk.relativePath;
+  }
+
   const parseTime = ((Date.now() - startParse) / 1000).toFixed(1);
   console.log(`  Parsed ${chunks.length} UI files`);
   console.log(`  Parse time: ${parseTime}s`);

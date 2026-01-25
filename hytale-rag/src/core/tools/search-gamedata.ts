@@ -7,6 +7,7 @@
 import { searchGameDataSchema, type SearchGameDataInput } from "../schemas.js";
 import type { ToolDefinition, ToolContext, ToolResult } from "./index.js";
 import type { GameDataSearchResult, GameDataType } from "../types.js";
+import { resolveGameDataPath } from "../../utils/paths.js";
 
 /**
  * Search game data tool definition
@@ -74,10 +75,11 @@ export function formatGameDataResults(results: GameDataSearchResult[]): string {
 
   return results
     .map((r, i) => {
+      const fullPath = resolveGameDataPath(r.filePath);
       const parts = [
         `## Result ${i + 1}: ${r.name}`,
         `**Type:** ${r.type}`,
-        `**Path:** ${r.filePath}`,
+        `**Path:** ${fullPath}`,
       ];
 
       if (r.category) parts.push(`**Category:** ${r.category}`);

@@ -146,12 +146,14 @@ async function main() {
   // Ensure db directory exists
   fs.mkdirSync(dbPath, { recursive: true });
 
+  const absSourceDir = path.resolve(sourceDir);
+
   // Step 1: Parse Java files (only Hytale code, not dependencies)
   console.log("Step 1: Parsing Hytale Java files (filtering dependencies)...");
   const startParse = Date.now();
 
   const { chunks, errors } = await parseDirectory(
-    sourceDir,
+    absSourceDir,
     (current, total, _file) => {
       if (current % 100 === 0 || current === total) {
         process.stdout.write(`\r  Parsed ${current}/${total} files`);
@@ -160,6 +162,11 @@ async function main() {
     isHytalePath // Only parse files in com/hypixel/hytale
   );
   console.log("");
+
+  // Normalize paths to be relative to source directory and use forward slashes
+  for (const chunk of chunks) {
+    chunk.filePath = path.relative(absSourceDir, chunk.filePath).replace(/\\/g, "/");
+  }
 
   const parseTime = ((Date.now() - startParse) / 1000).toFixed(1);
   console.log(`  Parsed ${chunks.length} Hytale methods`);

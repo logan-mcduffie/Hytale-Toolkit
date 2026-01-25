@@ -1,0 +1,20 @@
+# Changelog
+
+All notable changes to Hytale Toolkit will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2025-01-24
+
+### Added
+- PyQt6-based setup wizard with modern dark UI
+- Decompilation of Hytale client and server JARs using Vineflower
+- Javadocs generation from decompiled source
+- Vector database indexing for AI-powered code search
+- MCP server integration for Claude, Cursor, and GitHub Copilot
+- `hytale-mod init` CLI tool for scaffolding new mod projects
+- Support for Voyage AI and Ollama embedding providers
+
+### Notes
+- Initial public release

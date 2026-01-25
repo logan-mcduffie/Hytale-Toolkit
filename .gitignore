@@ -18,10 +18,12 @@ node_modules/
 # Python
 __pycache__/
 *.pyc
+*.egg-info/
 
 # Build outputs
 target/
 dist/
+build/
 
 # Logs
 *.log
@@ -46,3 +48,6 @@ site/
 
 # Discord bot (separate repo)
 discord-bot/
+
+# VS Code extension (separate repo)
+hytale-assistant/

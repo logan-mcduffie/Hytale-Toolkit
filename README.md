@@ -9,6 +9,7 @@
 [![Java](https://img.shields.io/badge/Java-24-orange?style=flat-square&logo=openjdk)](https://openjdk.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Wiki](https://img.shields.io/badge/Docs-Wiki-green?style=flat-square&logo=github)](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/WzPC6pXpqk)
 
 <sub><i>"Give me six hours to chop down a tree and I will spend the first four sharpening the axe."</i>
 <br>
@@ -47,16 +48,26 @@ When the docs aren't enough, browse the actual decompiled implementation to unde
 
 ### Prerequisites
 
-- **Python 3.10+** - <a href="https://www.python.org/downloads/" target="_blank">Download</a>
-- **Node.js 18+** - <a href="https://nodejs.org/" target="_blank">Download</a>
-- **Java 24+** - <a href="https://adoptium.net/" target="_blank">Download</a>
+**Required:**
 - **Hytale Alpha** - Installed on your system
 
-### One-Command Setup
+**Optional:**
+- **Node.js 18+** - <a href="https://nodejs.org/" target="_blank">Download</a> (only needed for MCP server / AI integration)
+
+> **Note:** The setup wizard will automatically download and install JDK 25 if Java is not detected.
+
+### Quick Start
+
+Download and run **`hytale-setup.exe`** from the [latest release](https://github.com/logan-mcduffie/Hytale-Toolkit/releases/latest).
+
+<details>
+<summary>Or run from source (requires Python 3.10+)</summary>
 
 ```bash
-python hytale-rag/setup.py
+pip install PyQt6 Pillow
+python hytale-rag/setup_gui_pyqt.py
 ```
+</details>
 
 The interactive wizard will:
 
@@ -65,7 +76,8 @@ The interactive wizard will:
 3. **Generate Javadocs** (optional) - Browsable HTML documentation
 4. **Set up semantic search** - Choose Voyage AI (cloud) or Ollama (local)
 5. **Download the RAG database** - Pre-indexed for instant search
-6. **Configure your AI tools** - Claude Code, VS Code, Cursor, Windsurf, or Codex
+6. **Configure your AI tools** - VS Code, JetBrains, or CLI integrations
+7. **Install CLI tools** (optional) - `hytale-mod init` command for scaffolding mods
 
 Once complete, restart your AI assistant and ask it questions like:
 - *"How does player movement work in Hytale?"*
@@ -83,7 +95,7 @@ npx tsx src/search.ts --stats
 ## Making Your First Mod
 
 ```bash
-python init-mod.py
+hytale-mod init
 ```
 
 The wizard will guide you through creating a new mod project with Gradle, IDE support, and a starter plugin class.
