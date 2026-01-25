@@ -46,18 +46,6 @@ When the docs aren't enough, browse the actual decompiled implementation to unde
 
 ## Quick Start
 
-### Prerequisites
-
-**Required:**
-- **Hytale Alpha** - Installed on your system
-
-**Optional:**
-- **Node.js 18+** - <a href="https://nodejs.org/" target="_blank">Download</a> (only needed for MCP server / AI integration)
-
-> **Note:** The setup wizard will automatically download and install JDK 25 if Java is not detected.
-
-### Quick Start
-
 Download and run **`hytale-setup.exe`** from the [latest release](https://github.com/logan-mcduffie/Hytale-Toolkit/releases/latest).
 
 <details>
