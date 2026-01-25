@@ -42,6 +42,8 @@ TOOLS = [
         ],
         "datas": [
             (str(SCRIPT_DIR / ".github" / "logo-transparent.png"), ".github"),
+            (str(SCRIPT_DIR / "hytale-rag" / "assets" / "sidebar_bg.jpg"), "assets"),
+            (str(SCRIPT_DIR / "hytale-rag" / "assets" / "icons"), "assets/icons"),
         ],
     },
 ]

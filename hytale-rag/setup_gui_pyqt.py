@@ -83,8 +83,8 @@ except ImportError:
 
 def get_base_path() -> Path:
     """Get the base path for resources."""
-    if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
+    if getattr(_sys, '_MEIPASS', None):
+        return Path(_sys._MEIPASS)
     else:
         return Path(__file__).parent.resolve()
 
