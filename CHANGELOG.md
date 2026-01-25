@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Idiomatic Kotlin main class template with proper syntax
 
 ### Fixed
+- JDK detection now searches `~/.jdks/` folder where IntelliJ installs JDKs
 - Changed "semver" to "SemVer" in header so it doesn't look like a typo for "server"
 - CLI tool installation now validates hytale-mod-cli directory exists before installing
 - Shows clear error message if CLI directory is missing (suggests git pull or re-download)

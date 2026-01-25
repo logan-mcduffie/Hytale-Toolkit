@@ -1344,6 +1344,13 @@ def detect_jdk_path(version: int) -> str | None:
                 if item.is_dir() and f"jdk-{version}" in item.name:
                     possible_paths.insert(0, item)
 
+        # Check user home .jdks folder (where IntelliJ installs JDKs)
+        home_jdks = Path.home() / ".jdks"
+        if home_jdks.exists():
+            for item in home_jdks.iterdir():
+                if item.is_dir() and (f"jdk-{version}" in item.name or f"temurin-{version}" in item.name):
+                    possible_paths.insert(0, item)
+
     elif system == "Darwin":  # macOS
         possible_paths = [
             Path(f"/Library/Java/JavaVirtualMachines/jdk-{version}.jdk/Contents/Home"),
@@ -1365,6 +1372,17 @@ def detect_jdk_path(version: int) -> str | None:
                     else:
                         possible_paths.insert(0, item)
 
+        # Check user home .jdks folder (where IntelliJ installs JDKs)
+        home_jdks = Path.home() / ".jdks"
+        if home_jdks.exists():
+            for item in home_jdks.iterdir():
+                if item.is_dir() and (f"jdk-{version}" in item.name or f"temurin-{version}" in item.name):
+                    home_path = item / "Contents" / "Home"
+                    if home_path.exists():
+                        possible_paths.insert(0, home_path)
+                    else:
+                        possible_paths.insert(0, item)
+
     else:  # Linux
         possible_paths = [
             Path(f"/usr/lib/jvm/java-{version}-openjdk"),
@@ -1380,6 +1398,13 @@ def detect_jdk_path(version: int) -> str | None:
         if local_jdks.exists():
             for item in local_jdks.iterdir():
                 if item.is_dir() and f"jdk-{version}" in item.name:
+                    possible_paths.insert(0, item)
+
+        # Check user home .jdks folder (where IntelliJ installs JDKs)
+        home_jdks = Path.home() / ".jdks"
+        if home_jdks.exists():
+            for item in home_jdks.iterdir():
+                if item.is_dir() and (f"jdk-{version}" in item.name or f"temurin-{version}" in item.name):
                     possible_paths.insert(0, item)
 
     for path in possible_paths:
