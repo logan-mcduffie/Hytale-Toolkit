@@ -5,6 +5,15 @@ All notable changes to Hytale Toolkit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.9] - 2025-01-25
+
+### Added
+- Mod IDs now support underscores (e.g., `my_mod`) in addition to hyphens
+
+### Fixed
+- CLI now finds decompiled source from standard toolkit location (`%LOCALAPPDATA%\Hytale-Toolkit`)
+- Fixes "Vineflower not found" error when CLI is installed separately from toolkit
+
 ## [1.0.8] - 2025-01-25
 
 ### Fixed

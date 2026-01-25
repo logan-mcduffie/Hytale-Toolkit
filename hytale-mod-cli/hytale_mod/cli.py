@@ -35,11 +35,21 @@ def get_base_path() -> Path:
     if getattr(sys, 'frozen', False):
         # Running as compiled executable
         return Path(sys.executable).parent
+
+    # Check standard toolkit location first (where setup GUI installs)
+    if sys.platform == "win32":
+        standard_path = Path(os.environ.get("LOCALAPPDATA", "")) / "Hytale-Toolkit"
     else:
-        # Running as installed package - find toolkit root relative to this file
-        # cli.py is at: {toolkit}/hytale-mod-cli/hytale_mod/cli.py
-        # So toolkit root is 3 levels up
-        return Path(__file__).parent.parent.parent
+        standard_path = Path.home() / ".hytale-toolkit"
+
+    # Use standard path if it has decompiled source or tools
+    if (standard_path / "decompiled").exists() or (standard_path / "tools").exists():
+        return standard_path
+
+    # Fall back to relative path from CLI installation
+    # cli.py is at: {toolkit}/hytale-mod-cli/hytale_mod/cli.py
+    # So toolkit root is 3 levels up
+    return Path(__file__).parent.parent.parent
 
 
 # Simple logging setup for the CLI package
@@ -332,9 +342,9 @@ def run_command(cmd: list[str], cwd: Path = None, env: dict = None, shell: bool 
 # ============================================================================
 
 def validate_mod_id(value: str) -> str | None:
-    """Validate mod ID (lowercase, alphanumeric, hyphens only)."""
-    if not re.match(r'^[a-z][a-z0-9-]*$', value):
-        return "Mod ID must start with a letter and contain only lowercase letters, numbers, and hyphens."
+    """Validate mod ID (lowercase, alphanumeric, hyphens, underscores)."""
+    if not re.match(r'^[a-z][a-z0-9_-]*$', value):
+        return "Mod ID must start with a letter and contain only lowercase letters, numbers, hyphens, and underscores."
     if len(value) < 2:
         return "Mod ID must be at least 2 characters."
     if len(value) > 64:
@@ -524,15 +534,15 @@ def get_hytale_install_path() -> str | None:
 # ============================================================================
 
 def to_class_name(mod_id: str) -> str:
-    """Convert mod-id to ClassName format."""
-    # Split by hyphens, capitalize each part
-    parts = mod_id.split("-")
+    """Convert mod-id or mod_id to ClassName format."""
+    # Split by hyphens and underscores, capitalize each part
+    parts = re.split(r'[-_]', mod_id)
     return "".join(part.capitalize() for part in parts)
 
 
 def generate_main_class(mod_config: dict) -> str:
     """Generate the main plugin Java class."""
-    package = f"{mod_config['group']}.{mod_config['name'].replace('-', '')}"
+    package = f"{mod_config['group']}.{mod_config['name'].replace('-', '').replace('_', '')}"
     class_name = mod_config['main_class']
 
     return f'''package {package};
@@ -573,7 +583,7 @@ public class {class_name} extends JavaPlugin {{
 
 def generate_main_class_kotlin(mod_config: dict) -> str:
     """Generate the main plugin Kotlin class."""
-    package = f"{mod_config['group']}.{mod_config['name'].replace('-', '')}"
+    package = f"{mod_config['group']}.{mod_config['name'].replace('-', '').replace('_', '')}"
     class_name = mod_config['main_class']
 
     return f'''package {package}
@@ -610,7 +620,7 @@ def generate_manifest(mod_config: dict) -> dict:
         "Group": mod_config['group'],
         "Name": mod_config['name'],
         "Version": mod_config['version'],
-        "Main": f"{mod_config['group']}.{mod_config['name'].replace('-', '')}.{mod_config['main_class']}",
+        "Main": f"{mod_config['group']}.{mod_config['name'].replace('-', '').replace('_', '')}.{mod_config['main_class']}",
         "ServerVersion": mod_config.get('server_version', '*'),
         "Authors": [{"Name": mod_config['author_name']}],
     }
@@ -1942,7 +1952,7 @@ def create_project_structure(mod_config: dict, project_path: Path, hytale_path: 
         project_path.mkdir(parents=True, exist_ok=True)
 
         # Source directories - use kotlin or java based on language selection
-        package_path = mod_config['group'].replace('.', '/') + '/' + mod_config['name'].replace('-', '')
+        package_path = mod_config['group'].replace('.', '/') + '/' + mod_config['name'].replace('-', '').replace('_', '')
         source_lang = "kotlin" if language == "kotlin" else "java"
         src_main_code = project_path / "src" / "main" / source_lang / package_path
         src_main_resources = project_path / "src" / "main" / "resources"
@@ -2147,7 +2157,7 @@ def create_mod_from_config(config: dict, quiet: bool = False) -> dict:
 
     Args:
         config: Dictionary with mod configuration:
-            - name (required): Mod ID (lowercase, hyphens allowed)
+            - name (required): Mod ID (lowercase, hyphens/underscores allowed)
             - group (required): Java package group (e.g., com.author)
             - parent_dir (required): Parent directory for the project
             - hytale_path (required): Path to Hytale installation
@@ -2334,7 +2344,7 @@ Examples:
                              help="Use current directory as project location (skips folder picker)")
 
     # Direct arguments
-    init_parser.add_argument("--name", "-n", type=str, help="Mod ID (lowercase, hyphens allowed)")
+    init_parser.add_argument("--name", "-n", type=str, help="Mod ID (lowercase, hyphens/underscores allowed)")
     init_parser.add_argument("--group", "-g", type=str, help="Java package group (e.g., com.author)")
     init_parser.add_argument("--parent-dir", "-d", type=str, help="Parent directory for the project")
     init_parser.add_argument("--hytale-path", "-H", type=str, help="Path to Hytale installation")
@@ -2596,7 +2606,7 @@ def run_init_command(args):
     print()
 
     # Name/ID (required)
-    print("  * Name is your mod's unique identifier (lowercase, hyphens allowed)")
+    print("  * Name is your mod's unique identifier (lowercase, hyphens/underscores allowed)")
     print("    This will also be the name of the project folder.")
     mod_config['name'] = prompt_string("Mod ID", validator=validate_mod_id)
     print()
