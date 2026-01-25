@@ -5,6 +5,17 @@ All notable changes to Hytale Toolkit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2025-01-24
+
+### Fixed
+- Database download not working in standalone executables (was using wrong Python path)
+- CLI tools installation check failing in standalone executables (was using exe path instead of Python)
+- CLI tools pip install failing in standalone executables (same issue)
+- Setup module import now explicitly skipped when running as bundled exe (with documentation)
+
+### Changed
+- Renamed internal `SCRIPT_DIR` to `BUNDLE_DIR` for bundled assets to avoid confusion with import path
+
 ## [1.0.2] - 2025-01-24
 
 ### Fixed

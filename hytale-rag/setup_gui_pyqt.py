@@ -63,22 +63,29 @@ from PyQt6.QtGui import (
 from PyQt6.QtWidgets import QGraphicsOpacityEffect
 
 # Import setup functions for MCP configuration
-SCRIPT_DIR = Path(__file__).parent.resolve()
-sys.path.insert(0, str(SCRIPT_DIR))
-try:
-    from setup import (
-        setup_claude_code,
-        setup_vscode,
-        setup_cursor,
-        setup_windsurf,
-        setup_codex,
-        setup_jetbrains,
-        create_start_scripts,
-        get_mcp_command_stdio,
-    )
-    SETUP_AVAILABLE = True
-except ImportError:
+# NOTE: When running as PyInstaller bundle, setup.py is not bundled - it exists
+# in the user's installed toolkit. MCP configuration must be done by running
+# from the installed toolkit directory, not the standalone installer exe.
+if getattr(_sys, '_MEIPASS', None):
+    # Running as bundled exe - setup module not available
     SETUP_AVAILABLE = False
+else:
+    SCRIPT_DIR = Path(__file__).parent.resolve()
+    sys.path.insert(0, str(SCRIPT_DIR))
+    try:
+        from setup import (
+            setup_claude_code,
+            setup_vscode,
+            setup_cursor,
+            setup_windsurf,
+            setup_codex,
+            setup_jetbrains,
+            create_start_scripts,
+            get_mcp_command_stdio,
+        )
+        SETUP_AVAILABLE = True
+    except ImportError:
+        SETUP_AVAILABLE = False
 
 
 def get_base_path() -> Path:
@@ -515,7 +522,7 @@ class TerminalWidget(QPlainTextEdit):
         self._log_lines = []
 
 
-SCRIPT_DIR = get_base_path()
+BUNDLE_DIR = get_base_path()
 
 
 def load_env_api_key(toolkit_path: str = None) -> str:
@@ -575,7 +582,7 @@ class SidebarWidget(QWidget):
         ]
 
         # Load background image
-        bg_path = SCRIPT_DIR / "assets" / "sidebar_bg.jpg"
+        bg_path = BUNDLE_DIR / "assets" / "sidebar_bg.jpg"
         if bg_path.exists():
             self.background_pixmap = QPixmap(str(bg_path))
 
@@ -4135,16 +4142,29 @@ class DatabasePage(QWidget):
         self._process.finished.connect(self._handle_finished)
         self._process.errorOccurred.connect(self._handle_error)
 
+        # Find Python interpreter (sys.executable is the .exe when frozen)
+        if getattr(_sys, '_MEIPASS', None):
+            # Running as bundled exe - find system Python
+            if sys.platform == "win32":
+                python_cmd = "python"
+            else:
+                python_cmd = "python3"
+        else:
+            python_cmd = sys.executable
+
+        # Use toolkit path to find setup.py (not the bundle's temp directory)
+        hytale_rag_dir = toolkit_path / "hytale-rag"
+
         # Run the setup.py download_database function via Python
         script = f'''
 import sys
-sys.path.insert(0, r"{SCRIPT_DIR}")
+sys.path.insert(0, r"{hytale_rag_dir}")
 from setup import download_database
 from pathlib import Path
 success = download_database(Path(r"{provider_dir}"), "{self._provider}")
 sys.exit(0 if success else 1)
 '''
-        self._process.start(sys.executable, ["-c", script])
+        self._process.start(python_cmd, ["-c", script])
 
     def cancel_download(self):
         if self._process and self._state == "running":
@@ -5435,8 +5455,14 @@ class CLIToolsPage(QWidget):
     def check_installed(self):
         """Check if hytale-mod CLI is already installed."""
         try:
+            # Find Python interpreter (sys.executable is the .exe when frozen)
+            if getattr(sys, '_MEIPASS', None):
+                python_cmd = "python" if sys.platform == "win32" else "python3"
+            else:
+                python_cmd = sys.executable
+
             result = subprocess.run(
-                [sys.executable, "-m", "pip", "show", "hytale-mod"],
+                [python_cmd, "-m", "pip", "show", "hytale-mod"],
                 capture_output=True,
                 text=True,
                 timeout=10
@@ -5517,8 +5543,11 @@ class CLIToolsPage(QWidget):
         if self._toolkit_path:
             self._process.setWorkingDirectory(str(self._toolkit_path))
 
-        # Use the current Python interpreter
-        python_exe = sys.executable
+        # Find Python interpreter (sys.executable is the .exe when frozen)
+        if getattr(sys, '_MEIPASS', None):
+            python_exe = "python" if sys.platform == "win32" else "python3"
+        else:
+            python_exe = sys.executable
         self._process.start(python_exe, args)
 
     def _handle_stdout(self):
