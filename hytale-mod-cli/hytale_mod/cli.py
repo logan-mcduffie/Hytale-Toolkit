@@ -90,7 +90,7 @@ MAVEN_VERSION = "3.9.9"
 MAVEN_WRAPPER_VERSION = "3.3.2"
 
 # Kotlin version (for Kotlin projects)
-KOTLIN_VERSION = "2.1.0"
+KOTLIN_VERSION = "2.3.0"
 
 # License templates
 LICENSES = {
