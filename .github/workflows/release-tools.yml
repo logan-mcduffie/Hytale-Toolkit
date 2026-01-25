@@ -47,23 +47,19 @@ jobs:
       - name: Build executables
         run: python build-tools.py --clean
 
-      - name: Rename executables for release
+      - name: Clean up build artifacts
         shell: bash
         run: |
           cd dist
-          for file in *; do
-            if [ -f "$file" ]; then
-              name="${file%${{ matrix.suffix }}}"
-              mv "$file" "${name}-${{ matrix.platform }}${{ matrix.suffix }}"
-            fi
-          done
+          # Remove macOS code signing artifacts that shouldn't be released
+          rm -f Info.plist CodeResources generated-* 2>/dev/null || true
           ls -la
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tools-${{ matrix.platform }}
-          path: dist/*
+          path: dist/hytale-setup*
           retention-days: 7
 
   release:
@@ -119,31 +115,18 @@ jobs:
 
           ## Downloads
 
-          | Platform | Setup Tool | Mod CLI |
-          |----------|------------|---------|
-          | Windows (x64) | \`hytale-setup-windows-x64.exe\` | \`hytale-mod-windows-x64.exe\` |
-          | macOS (Intel) | \`hytale-setup-macos-x64\` | \`hytale-mod-macos-x64\` |
-          | macOS (Apple Silicon) | \`hytale-setup-macos-arm64\` | \`hytale-mod-macos-arm64\` |
-          | Linux (x64) | \`hytale-setup-linux-x64\` | \`hytale-mod-linux-x64\` |
-
-          ## Tools
-
-          - **hytale-setup**: GUI wizard that sets up the Hytale Toolkit (downloads databases, configures MCP)
-          - **hytale-mod**: CLI tool for creating new Hytale mod projects
+          | Platform | Filename |
+          |----------|----------|
+          | Windows (x64) | \`hytale-setup-windows-x64.exe\` |
+          | macOS (Intel) | \`hytale-setup-macos-x64\` |
+          | macOS (Apple Silicon) | \`hytale-setup-macos-arm64\` |
+          | Linux (x64) | \`hytale-setup-linux-x64\` |
 
           ## Quick Start
 
-          \`\`\`bash
-          # Run the setup wizard (first time only)
-          ./hytale-setup
-
-          # Create a new mod project
-          ./hytale-mod
-          \`\`\`
-
-          ## Notes
-
-          Database files are downloaded automatically by the setup tool from [downloads.loganmcduffie.com](https://downloads.loganmcduffie.com/db/).
+          1. Download the setup tool for your platform
+          2. Run it and follow the wizard to configure the Hytale Toolkit
+          3. Database files are downloaded automatically from [downloads.loganmcduffie.com](https://downloads.loganmcduffie.com/db/)
           RELEASE_EOF
 
           cat release_body.md

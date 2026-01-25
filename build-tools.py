@@ -44,14 +44,6 @@ TOOLS = [
             (str(SCRIPT_DIR / ".github" / "logo-transparent.png"), ".github"),
         ],
     },
-    {
-        "name": "hytale-mod",
-        "script": SCRIPT_DIR / "hytale-mod-cli" / "hytale_mod" / "cli.py",
-        "icon": ICON_FILE,
-        "windowed": False,  # CLI tool, needs console
-        "hidden_imports": [],
-        "datas": [],
-    },
 ]
 
 
@@ -88,6 +80,10 @@ def get_platform_suffix() -> str:
     """Get platform-specific suffix for executables."""
     system = platform.system().lower()
     machine = platform.machine().lower()
+
+    # Use friendly OS names
+    if system == "darwin":
+        system = "macos"
 
     if machine in ("x86_64", "amd64"):
         arch = "x64"

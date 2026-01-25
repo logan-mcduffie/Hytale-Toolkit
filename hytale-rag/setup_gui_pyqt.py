@@ -7,7 +7,12 @@ A graphical setup wizard with proper translucency support.
 from pathlib import Path as _Path
 
 # Read version from VERSION file
-_version_file = _Path(__file__).parent.parent / "VERSION"
+# When running as PyInstaller bundle, check sys._MEIPASS first
+import sys as _sys
+if getattr(_sys, '_MEIPASS', None):
+    _version_file = _Path(_sys._MEIPASS) / "VERSION"
+else:
+    _version_file = _Path(__file__).parent.parent / "VERSION"
 __version__ = _version_file.read_text().strip() if _version_file.exists() else "0.0.0"
 
 import json
@@ -165,6 +170,16 @@ class UpdateDialog(QDialog):
         self.update_info = update_info
         self.setWindowTitle("Update Available")
         self.setFixedSize(450, 300)
+
+        # Set window icon (check PyInstaller bundle first)
+        if getattr(_sys, '_MEIPASS', None):
+            icon_path = _Path(_sys._MEIPASS) / ".github" / "logo-transparent.png"
+        else:
+            icon_path = _Path(__file__).parent.parent / ".github" / "logo-transparent.png"
+        if icon_path.exists():
+            from PyQt6.QtGui import QIcon
+            self.setWindowIcon(QIcon(str(icon_path)))
+
         self.setStyleSheet("""
             QDialog {
                 background-color: #1e1e1e;
@@ -197,31 +212,52 @@ class UpdateDialog(QDialog):
 
         # Title
         title = QLabel("A new version is available!")
-        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #22C55E;")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #22C55E; background: transparent;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
         # Version info
         version_text = f"Current: v{current_version}  →  Latest: v{update_info['version']}"
         version_label = QLabel(version_text)
-        version_label.setStyleSheet("font-size: 14px; color: #aaaaaa;")
+        version_label.setStyleSheet("font-size: 14px; color: #aaaaaa; background: transparent;")
         version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(version_label)
 
-        # Release notes (truncated)
+        # Release notes in scrollable area
         notes = update_info.get("notes", "")
         if notes:
-            # Take first few lines
-            lines = notes.strip().split('\n')[:8]
-            truncated = '\n'.join(lines)
-            if len(lines) < len(notes.strip().split('\n')):
-                truncated += "\n..."
+            from PyQt6.QtWidgets import QScrollArea
 
-            notes_label = QLabel(truncated)
-            notes_label.setStyleSheet("font-size: 11px; color: #888888; padding: 10px; background-color: #2a2a2a; border-radius: 5px;")
+            notes_label = QLabel(notes.strip())
+            notes_label.setStyleSheet("font-size: 11px; color: #888888; background: transparent;")
             notes_label.setWordWrap(True)
-            notes_label.setMaximumHeight(120)
-            layout.addWidget(notes_label)
+
+            scroll_area = QScrollArea()
+            scroll_area.setWidget(notes_label)
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setStyleSheet("""
+                QScrollArea {
+                    border: none;
+                    background: transparent;
+                }
+                QScrollArea > QWidget > QWidget {
+                    background: transparent;
+                }
+                QScrollBar:vertical {
+                    background: #2a2a2a;
+                    width: 8px;
+                    border-radius: 4px;
+                }
+                QScrollBar::handle:vertical {
+                    background: #555555;
+                    border-radius: 4px;
+                }
+                QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                    height: 0px;
+                }
+            """)
+            scroll_area.setMaximumHeight(140)
+            layout.addWidget(scroll_area)
 
         layout.addStretch()
 
@@ -6188,8 +6224,11 @@ def main():
 
     app = QApplication(sys.argv)
 
-    # Set application icon
-    icon_path = Path(__file__).parent.parent / ".github" / "logo-transparent.png"
+    # Set application icon (check PyInstaller bundle first)
+    if getattr(sys, '_MEIPASS', None):
+        icon_path = Path(sys._MEIPASS) / ".github" / "logo-transparent.png"
+    else:
+        icon_path = Path(__file__).parent.parent / ".github" / "logo-transparent.png"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
 

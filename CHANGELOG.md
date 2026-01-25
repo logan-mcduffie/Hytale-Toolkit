@@ -5,6 +5,18 @@ All notable changes to Hytale Toolkit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-01-24
+
+### Fixed
+- Version detection in standalone executables (was showing 0.0.0)
+- App icon not appearing in standalone executables
+- Update dialog styling (removed gray backgrounds, made changelog scrollable)
+- Redundant platform naming in release filenames
+
+### Changed
+- Simplified release assets to only include setup wizard
+- Cleaned up macOS build artifacts from releases
+
 ## [1.0.0] - 2025-01-24
 
 ### Added
