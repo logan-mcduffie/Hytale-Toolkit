@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
 [![Wiki](https://img.shields.io/badge/Docs-Wiki-green?style=flat-square&logo=github)](https://github.com/logan-mcduffie/Hytale-Toolkit/wiki)
 [![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=flat-square&logo=discord&logoColor=white)](https://discord.gg/WzPC6pXpqk)
-[![Watch the demo](https://img.youtube.com/vi/txK8oWLufjA/maxresdefault.jpg)](https://youtu.be/txK8oWLufjA)
+[![Demo Video](https://img.shields.io/badge/Demo-Watch_Video-FF0000?style=flat-square&logo=youtube&logoColor=white)](https://youtu.be/txK8oWLufjA)
 
 <sub><i>"Give me six hours to chop down a tree and I will spend the first four sharpening the axe."</i>
 <br>
