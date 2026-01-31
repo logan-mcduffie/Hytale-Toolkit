@@ -4725,12 +4725,17 @@ sys.exit(0)
 def check_node_installed() -> tuple[bool, str]:
     """Check if Node.js is installed. Returns (is_installed, version_or_error)."""
     try:
+        # Hide console window on Windows
+        kwargs = {}
+        if sys.platform == "win32":
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
         result = subprocess.run(
             ["node", "--version"],
             capture_output=True,
             text=True,
             timeout=5,
-            shell=(sys.platform == "win32")
+            **kwargs
         )
         if result.returncode == 0:
             version = result.stdout.strip()
@@ -4746,12 +4751,17 @@ def check_java_installed() -> tuple[bool, str, int]:
     Returns (is_installed, version_string, major_version).
     """
     try:
+        # Hide console window on Windows
+        kwargs = {}
+        if sys.platform == "win32":
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
         result = subprocess.run(
             ["java", "-version"],
             capture_output=True,
             text=True,
             timeout=10,
-            shell=(sys.platform == "win32")
+            **kwargs
         )
         # Java outputs version to stderr
         output = result.stderr if result.stderr else result.stdout
@@ -5291,13 +5301,18 @@ class IntegrationPage(QWidget):
         # First, ensure npm dependencies are installed
         if self._node_installed:
             try:
+                # Hide console window on Windows
+                kwargs = {}
+                if sys.platform == "win32":
+                    kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+
                 result = subprocess.run(
                     ["npm", "install"],
                     cwd=str(script_dir),
                     capture_output=True,
                     text=True,
                     timeout=120,
-                    shell=(sys.platform == "win32")
+                    **kwargs
                 )
                 if result.returncode != 0:
                     # Non-fatal warning - dependencies might already be installed
@@ -5919,7 +5934,12 @@ class CLIToolsPage(QWidget):
         self._toolkit_path = toolkit_path
 
     def check_installed(self):
-        """Check if hytale-mod CLI is already installed."""
+        """Check if hytale-mod CLI is already installed (async to avoid UI lag)."""
+        # Defer the check to avoid blocking UI during page transition
+        QTimer.singleShot(0, self._check_installed_async)
+
+    def _check_installed_async(self):
+        """Actually perform the pip check."""
         try:
             # Find Python interpreter (sys.executable is the .exe when frozen)
             if getattr(sys, '_MEIPASS', None):
