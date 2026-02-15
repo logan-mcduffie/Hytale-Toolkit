@@ -1316,7 +1316,10 @@ class HytalePathPage(QWidget):
             data = self._process.readAllStandardError()
             text = bytes(data).decode("utf-8", errors="replace").strip()
             if text:
-                self._last_error = text
+                if not self._last_error:
+                    self._last_error = text
+                else:
+                    self._last_error += "\n" + text
 
     def _animate_dots(self):
         """Animate the downloading dots."""
@@ -1355,7 +1358,20 @@ class HytalePathPage(QWidget):
                 )
                 self.download_status.setStyleSheet("font-family: 'Segoe UI Symbol', 'Segoe UI'; font-size: 12px; color: #EF4444;")
             else:
-                self.download_status.setText(f"\u2718  Download failed (code {exit_code})")
+                # Extract the fatal error line from git output for a useful message
+                fatal_line = ""
+                if error_msg:
+                    for line in error_msg.splitlines():
+                        if line.strip().lower().startswith("fatal:"):
+                            fatal_line = line.strip()[len("fatal:"):].strip()
+                            break
+                if fatal_line:
+                    # Truncate long messages to fit the UI
+                    if len(fatal_line) > 80:
+                        fatal_line = fatal_line[:77] + "..."
+                    self.download_status.setText(f"\u2718  Git error: {fatal_line}")
+                else:
+                    self.download_status.setText(f"\u2718  Download failed (code {exit_code})")
                 self.download_status.setStyleSheet("font-family: 'Segoe UI Symbol', 'Segoe UI'; font-size: 12px; color: #EF4444;")
 
         self.state_changed.emit(self._state)
