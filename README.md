@@ -89,3 +89,7 @@ hytale-mod init
 <div align="center">
 <sub>This toolkit is for educational and modding purposes. Hytale is a trademark of Hypixel Studios.</sub>
 </div>
+
+## Related Hytale Resources
+
+- [Hytale Character Recipes](https://hytalecharacter.com/) - fan-made character recipe references, screenshots, and manual recreation notes for players and avatar creators.
